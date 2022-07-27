@@ -97,7 +97,10 @@ impl<'source> MatcherBuilder<'source> {
     }
 
     fn build(self) -> Matcher {
-        assert!(self.pattern.is_some(), "cannot build matcher if pattern is not set.");
+        assert!(
+            self.pattern.is_some(),
+            "cannot build matcher if pattern is not set."
+        );
 
         let pattern = self.pattern.unwrap();
 
@@ -158,7 +161,7 @@ fn main() {
                             std::process::exit(1);
                         }
                     }
-                } else if let Some(options) = arg.strip_prefix("-") {
+                } else if let Some(options) = arg.strip_prefix('-') {
                     for option in options.chars() {
                         match option {
                             'r' => matcher = matcher.set_regex(),
