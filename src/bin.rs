@@ -96,7 +96,7 @@ impl<'source> MatcherBuilder<'source> {
         self.set_kind(MatcherKind::Regex)
     }
 
-    fn build(self) -> Matcher {
+    fn build(self) -> Result<Matcher, Box<dyn std::error::Error>> {
         assert!(
             self.pattern.is_some(),
             "cannot build matcher if pattern is not set."
@@ -107,14 +107,13 @@ impl<'source> MatcherBuilder<'source> {
         match self.kind {
             MatcherKind::Glob => {
                 let glob = globset::GlobBuilder::new(pattern)
-                    .build()
-                    .unwrap()
+                    .build()?
                     .compile_matcher();
-                Matcher::Glob(glob)
+                Ok(Matcher::Glob(glob))
             }
             MatcherKind::Regex => {
-                let regex = regex::Regex::new(pattern).unwrap();
-                Matcher::Regex(regex)
+                let regex = regex::Regex::new(pattern)?;
+                Ok(Matcher::Regex(regex))
             }
         }
     }
@@ -135,7 +134,7 @@ impl MatcherSet {
     }
 }
 
-fn main() {
+fn main() -> Result<(), Box< dyn std::error::Error>>{
     let mut args = std::env::args().skip(1);
     let mut default_kind = MatcherKind::Glob;
     let mut matchers: Vec<Matcher> = vec![];
@@ -189,7 +188,7 @@ fn main() {
                         }
                     }
                 } else {
-                    matchers.push(matcher.set_pattern(arg.as_str()).build());
+                    matchers.push(matcher.set_pattern(arg.as_str()).build()?);
                     break;
                 }
             } else {
@@ -209,8 +208,10 @@ fn main() {
 
     let paths = ignore::WalkBuilder::new(".")
         .build()
-        .map(|de| de.unwrap().into_path());
+        .filter_map(|de| de.ok().map(|de| de.into_path()));
     paths
         .filter(|p| p.is_file() && m.is_match(p.to_str().unwrap()))
         .for_each(|s| println!("{:?}", s));
+
+    Ok(())
 }
