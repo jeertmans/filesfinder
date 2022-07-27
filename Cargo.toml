@@ -1,0 +1,21 @@
+[package]
+name = "filesfinder"
+version = "0.1.0"
+authors = ["Jérome Eertmans <jeertmans@icloud.com>"]
+edition = "2021"
+description = "Find files within current directory that match given patterns, while respecting gitignore rules."
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/jeertmans/filesfinder"
+keywords = ["find", "files", "gitignore"]
+include = ["src/bin.rs", "LICENSE.md", "README.md", "CHANGELOG.md"]
+rust-version = "1.57.0"
+
+[[bin]]
+name = "ff"
+path = "src/bin.rs"
+
+[dependencies]
+ignore = "0.4"
+regex = "1"
+globset = "0.4"
