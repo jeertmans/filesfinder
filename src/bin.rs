@@ -11,16 +11,57 @@ fn print_help() {
 {DESCRIPTION}
 
 USAGE:
-    ff [OPTIONS] <PATTERNS>
+    ff [OPTIONS] <PATTERN>...
     ff [OPTIONS] <PATTERN> [OPTIONS] <PATTERN> ...
 
+ARGS:
+    <PATTERN>...
+            A pattern to match against each file.
+
 OPTIONS:
-    -g                  Sets next pattern to be parsed as a glob
-    -G                  Sets next patterns to be parsed as a glob [default]
-    -r                  Sets next pattern to be parsed as a regex
-    -R                  Sets next patterns to be parsed as a regex
-    -h, --help          Print help information
-    -V, --version       Print version information"
+    -g, -G
+            Parse pattern as a glob expression.
+            [default behavior]
+
+    -r, -R
+            Parse pattern as a regular expression.
+
+    -i, -I
+            Matching files will be included in the output.
+            [default behavior]
+
+    -e, -E
+            Matching files will be excluded from the output.
+
+        --dir <PATH>
+            Files will be searched in the directory specified by the PATH.
+            [default: '.']
+
+        --show-hidden
+            Allow to show hidden files.
+
+        --no-gitignore
+            Ignore gitignore files.
+
+    -h, --help
+            Print help information.
+
+    -V, --version
+            Print version information.
+
+NOTES:
+    -   Capitalized options (.e.g. '-G') apply to all subsequent patterns.
+        E.g.: 'ff -g \"*.rs\" -g \"*.md\"' is equivalent to 'ff -G \"*.rs\" \"*.md\"'.
+        You can always unset a flag by overriding it.
+
+    -   Options can be grouped under the same '-'.
+        E.g.: 'ff -e -g \"*.rs\"' is equivalent to 'ff -eg \"*.rs\"'.
+
+    -   File exclusion is performed after file inclusion.
+
+    -   For performance reasons, prefer to use more general patterns first,
+        and more specific ones at the end.
+        E.g.: 'ff \"*.md\" \"README.md\"' is faster but equivalent to 'ff \"README.md\" \"*.md\"'."
     );
 }
 
@@ -29,8 +70,7 @@ fn print_version() {
 }
 
 fn print_invalid_option(option: &str) {
-    eprintln!("Invalid option {}. See valid options below:\n", option);
-    print_help();
+    eprintln!("Invalid option {}. Print help with '--help'.", option);
 }
 
 fn print_invalid_long_option(option: &str) {
@@ -52,6 +92,7 @@ impl Default for MatcherKind {
     }
 }
 
+#[derive(Clone)]
 enum Matcher {
     Glob(globset::GlobMatcher),
     Regex(regex::Regex),
@@ -97,12 +138,9 @@ impl<'source> MatcherBuilder<'source> {
     }
 
     fn build(self) -> Result<Matcher, Box<dyn std::error::Error>> {
-        assert!(
-            self.pattern.is_some(),
-            "cannot build matcher if pattern is not set."
-        );
-
-        let pattern = self.pattern.unwrap();
+        let pattern = self
+            .pattern
+            .expect("cannot build matcher if pattern is not set.");
 
         match self.kind {
             MatcherKind::Glob => {
@@ -119,6 +157,7 @@ impl<'source> MatcherBuilder<'source> {
     }
 }
 
+#[derive(Clone)]
 struct MatcherSet {
     matchers: Vec<Matcher>,
 }
@@ -134,19 +173,37 @@ impl MatcherSet {
     }
 }
 
-fn main() -> Result<(), Box< dyn std::error::Error>>{
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut args = std::env::args().skip(1);
     let mut default_kind = MatcherKind::Glob;
-    let mut matchers: Vec<Matcher> = vec![];
+    let mut default_include = true;
+    let mut include: Vec<Matcher> = vec![];
+    let mut exclude: Vec<Matcher> = vec![];
     let mut last_arg_seen = false;
+    let mut directory = ".".to_string();
+    let mut ignore_hidden = true;
+    let mut use_gitignore = true;
 
     while !last_arg_seen {
         let mut matcher = MatcherBuilder::default().set_kind(default_kind);
+        let mut include_next = default_include;
 
         loop {
             if let Some(arg) = args.next() {
                 if let Some(option) = arg.strip_prefix("--") {
                     match option {
+                        "dir" => {
+                            if let Some(path) = args.next() {
+                                directory = path;
+                            } else {
+                                eprintln!(
+                                    "--dir option is missing a <PATH>. Print help with '--help'."
+                                );
+                                std::process::exit(1);
+                            }
+                        }
+                        "show-hidden" => ignore_hidden = false,
+                        "no-gitignore" => use_gitignore = false,
                         "help" => {
                             print_help();
                             std::process::exit(0);
@@ -163,15 +220,29 @@ fn main() -> Result<(), Box< dyn std::error::Error>>{
                 } else if let Some(options) = arg.strip_prefix('-') {
                     for option in options.chars() {
                         match option {
-                            'r' => matcher = matcher.set_regex(),
-                            'g' => matcher = matcher.set_glob(),
-                            'R' => {
-                                matcher = matcher.set_regex();
-                                default_kind = MatcherKind::Regex;
-                            }
-                            'G' => {
+                            'g' | 'G' => {
                                 matcher = matcher.set_glob();
-                                default_kind = MatcherKind::Glob;
+                                if option == 'G' {
+                                    default_kind = MatcherKind::Glob;
+                                }
+                            }
+                            'r' | 'R' => {
+                                matcher = matcher.set_regex();
+                                if option == 'R' {
+                                    default_kind = MatcherKind::Regex;
+                                }
+                            }
+                            'i' | 'I' => {
+                                include_next = true;
+                                if option == 'I' {
+                                    default_include = true;
+                                }
+                            }
+                            'e' | 'E' => {
+                                include_next = false;
+                                if option == 'E' {
+                                    default_include = false;
+                                }
                             }
                             'h' => {
                                 print_help();
@@ -188,7 +259,12 @@ fn main() -> Result<(), Box< dyn std::error::Error>>{
                         }
                     }
                 } else {
-                    matchers.push(matcher.set_pattern(arg.as_str()).build()?);
+                    let matcher = matcher.set_pattern(arg.as_str()).build()?;
+                    if include_next {
+                        include.push(matcher);
+                    } else {
+                        exclude.push(matcher);
+                    }
                     break;
                 }
             } else {
@@ -198,20 +274,51 @@ fn main() -> Result<(), Box< dyn std::error::Error>>{
         }
     }
 
-    if matchers.is_empty() {
-        eprintln!("No patterns were speficied, please provide at leat one. See usage below:\n");
-        print_help();
+    if (include.is_empty()) && (exclude.is_empty()) {
+        eprintln!(
+            "No patterns were speficied, please provide at leat one. Print help with '--help'."
+        );
         std::process::exit(1);
     }
 
-    let m = MatcherSet::new(matchers);
+    let include = MatcherSet::new(include);
+    let exclude = MatcherSet::new(exclude);
 
-    let paths = ignore::WalkBuilder::new(".")
-        .build()
-        .filter_map(|de| de.ok().map(|de| de.into_path()));
-    paths
-        .filter(|p| p.is_file() && m.is_match(p.to_str().unwrap()))
-        .for_each(|s| println!("{:?}", s));
+    let (tx, rx) = crossbeam_channel::unbounded::<std::path::PathBuf>();
 
+    let walker = ignore::WalkBuilder::new(directory.as_str())
+        .hidden(ignore_hidden)
+        .git_ignore(use_gitignore)
+        .build_parallel();
+
+    let stdout_thread = std::thread::spawn(move || {
+        for path in rx {
+            println!("{:?}", path.as_os_str());
+        }
+    });
+
+    walker.run(|| {
+        let tx = tx.clone();
+        let include = include.clone();
+        let exclude = exclude.clone();
+
+        Box::new(move |result| {
+            if let Ok(de) = result {
+                let path = de.into_path();
+
+                if path.is_file() {
+                    if let Some(filename) = path.to_str() {
+                        if include.is_match(filename) && !exclude.is_match(filename) {
+                            tx.send(path).unwrap();
+                        }
+                    }
+                }
+            }
+            ignore::WalkState::Continue
+        })
+    });
+
+    drop(tx);
+    stdout_thread.join().unwrap();
     Ok(())
 }

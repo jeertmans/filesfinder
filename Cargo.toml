@@ -17,5 +17,6 @@ path = "src/bin.rs"
 
 [dependencies]
 ignore = "0.4"
+crossbeam-channel = "0.5"
 regex = "1"
 globset = "0.4"
