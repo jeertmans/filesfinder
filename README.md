@@ -6,18 +6,17 @@
 
 1. [About](#about)
 2. [Installation](#installation)
-3. [Usage](#usage)
-2. [Examples](#examples)
-3. [CHANGELOG](CHANGELOG.md)
-4. [Contributing](#contributing)
+3. [Examples](#examples)
+4. [CHANGELOG](CHANGELOG.md)
+5. [Contributing](#contributing)
     - [Future features](#future-features)
 
 ## About
 
 FilesFinder (FF) is a command-line tool that aims to search for files within a given repository.
-As such, it respect your `.gitignore` files and exclude the same files from the output.
+As such, it respects your `.gitignore` files and exclude the same files from the output.
 
-FF is a simple to use alternative to other tools such as `find` from [Findutils](https://www.gnu.org/software/findutils/manual/html_mono/find.html).
+FF is a simple-to-use alternative to other tools such as `find` from [Findutils](https://www.gnu.org/software/findutils/manual/html_mono/find.html).
 
 ## Installation
 
@@ -29,7 +28,7 @@ You can install the latest released version with `cargo`:
 
 After that, FilesFinder can be used via the `ff` alias.
 
-```
+```text
 USAGE:
     ff [OPTIONS] <PATTERN>...
     ff [OPTIONS] <PATTERN> [OPTIONS] <PATTERN> ...
@@ -110,4 +109,5 @@ Contributions are more than welcome!
 - [ ] Provide other flags for case
 - [ ] Allow to match fullname or basename
 - [ ] Add tests for CI
+- [ ] Create a GitHub action
 - [ ] ...
