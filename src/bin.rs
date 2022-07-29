@@ -1,7 +1,18 @@
+use bstr::ByteVec;
+use globset::GlobBuilder;
+use regex::bytes::RegexSetBuilder;
+use std::borrow::Cow;
+use std::path::Path;
+
 const AUTHORS: &str = env!("CARGO_PKG_AUTHORS");
 const DESCRIPTION: &str = env!("CARGO_PKG_DESCRIPTION");
 const NAME: &str = env!("CARGO_PKG_NAME");
 const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+#[inline]
+fn path_to_utf8<'source, P: AsRef<Path> + ?Sized>(path: &'source P) -> Cow<'source, [u8]> {
+    Vec::from_path_lossy(path.as_ref())
+}
 
 fn print_help() {
     println!(
@@ -92,22 +103,6 @@ impl Default for MatcherKind {
     }
 }
 
-#[derive(Clone)]
-enum Matcher {
-    Glob(globset::GlobMatcher),
-    Regex(regex::Regex),
-}
-
-impl Matcher {
-    #[inline]
-    fn is_match(&self, string: &str) -> bool {
-        match self {
-            Matcher::Glob(glob) => glob.is_match(string),
-            Matcher::Regex(regex) => regex.is_match(string),
-        }
-    }
-}
-
 #[derive(Default)]
 struct MatcherBuilder<'source> {
     pattern: Option<&'source str>,
@@ -137,39 +132,15 @@ impl<'source> MatcherBuilder<'source> {
         self.set_kind(MatcherKind::Regex)
     }
 
-    fn build(self) -> Result<Matcher, Box<dyn std::error::Error>> {
+    fn build(self) -> Result<String, Box<dyn std::error::Error>> {
         let pattern = self
             .pattern
             .expect("cannot build matcher if pattern is not set.");
 
         match self.kind {
-            MatcherKind::Glob => {
-                let glob = globset::GlobBuilder::new(pattern)
-                    .build()?
-                    .compile_matcher();
-                Ok(Matcher::Glob(glob))
-            }
-            MatcherKind::Regex => {
-                let regex = regex::Regex::new(pattern)?;
-                Ok(Matcher::Regex(regex))
-            }
+            MatcherKind::Glob => Ok(GlobBuilder::new(pattern).build()?.regex().to_string()),
+            MatcherKind::Regex => Ok(pattern.to_string()),
         }
-    }
-}
-
-#[derive(Clone)]
-struct MatcherSet {
-    matchers: Vec<Matcher>,
-}
-
-impl MatcherSet {
-    fn new(matchers: Vec<Matcher>) -> MatcherSet {
-        Self { matchers }
-    }
-
-    #[inline]
-    fn is_match(&self, string: &str) -> bool {
-        self.matchers.iter().any(|m| m.is_match(string))
     }
 }
 
@@ -177,8 +148,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut args = std::env::args().skip(1);
     let mut default_kind = MatcherKind::Glob;
     let mut default_include = true;
-    let mut include: Vec<Matcher> = vec![];
-    let mut exclude: Vec<Matcher> = vec![];
+    let mut include: Vec<String> = vec![];
+    let mut exclude: Vec<String> = vec![];
     let mut last_arg_seen = false;
     let mut directory = ".".to_string();
     let mut ignore_hidden = true;
@@ -281,8 +252,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::process::exit(1);
     }
 
-    let include = MatcherSet::new(include);
-    let exclude = MatcherSet::new(exclude);
+    let include = RegexSetBuilder::new(include).build()?;
+    let exclude = RegexSetBuilder::new(exclude).build()?;
 
     let (tx, rx) = crossbeam_channel::unbounded::<std::path::PathBuf>();
 
@@ -305,13 +276,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Box::new(move |result| {
             if let Ok(de) = result {
                 let path = de.into_path();
+                let utf8 = path_to_utf8(path.as_path());
 
-                if path.is_file() {
-                    if let Some(filename) = path.to_str() {
-                        if include.is_match(filename) && !exclude.is_match(filename) {
-                            tx.send(path).unwrap();
-                        }
-                    }
+                if path.is_file() && include.is_match(&utf8) && !exclude.is_match(&utf8) {
+                    tx.send(path).unwrap();
                 }
             }
             ignore::WalkState::Continue
