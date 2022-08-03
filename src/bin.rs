@@ -1,7 +1,6 @@
-use bstr::ByteVec;
 use globset::GlobBuilder;
 use regex::bytes::RegexSetBuilder;
-use std::borrow::Cow;
+use std::io::{self, Write};
 use std::path::Path;
 
 const AUTHORS: &str = env!("CARGO_PKG_AUTHORS");
@@ -9,9 +8,11 @@ const DESCRIPTION: &str = env!("CARGO_PKG_DESCRIPTION");
 const NAME: &str = env!("CARGO_PKG_NAME");
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-#[inline]
-fn path_to_utf8<'source, P: AsRef<Path> + ?Sized>(path: &'source P) -> Cow<'source, [u8]> {
-    Vec::from_path_lossy(path.as_ref())
+#[macro_export]
+macro_rules! path_as_bytes {
+    ($path: ident) => {
+        $path.to_string_lossy().as_bytes()
+    };
 }
 
 fn print_help() {
@@ -89,6 +90,19 @@ fn print_invalid_long_option(option: &str) {
 }
 fn print_invalid_short_option(option: char) {
     print_invalid_option(format!("-{}", option).as_str())
+}
+
+#[cfg(unix)]
+fn write_path<W: Write>(mut wtr: W, path: &Path) {
+    use std::os::unix::ffi::OsStrExt;
+    wtr.write(path.as_os_str().as_bytes()).unwrap();
+    wtr.write(b"\n").unwrap();
+}
+
+#[cfg(not(unix))]
+fn write_path<W: Write>(mut wtr: W, path: &Path) {
+    wtr.write(path.to_string_lossy().as_bytes()).unwrap();
+    wtr.write(b"\n").unwrap();
 }
 
 #[derive(Clone, Copy)]
@@ -255,7 +269,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let include = RegexSetBuilder::new(include).build()?;
     let exclude = RegexSetBuilder::new(exclude).build()?;
 
-    let (tx, rx) = crossbeam_channel::unbounded::<std::path::PathBuf>();
+    let (tx, rx) = crossbeam_channel::unbounded::<ignore::DirEntry>();
 
     let walker = ignore::WalkBuilder::new(directory.as_str())
         .hidden(ignore_hidden)
@@ -263,25 +277,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build_parallel();
 
     let stdout_thread = std::thread::spawn(move || {
-        for path in rx {
-            println!("{:?}", path.as_os_str());
+        let mut stdout = io::BufWriter::new(io::stdout());
+        for de in rx.iter().filter(|de| {
+            let path = de.path();
+            let strl = path.to_string_lossy();
+            let utf8 = strl.as_bytes();
+            path.is_file() && include.is_match(&utf8) && !exclude.is_match(&utf8)
+        }) {
+            write_path(&mut stdout, de.path());
         }
     });
 
     walker.run(|| {
         let tx = tx.clone();
-        let include = include.clone();
-        let exclude = exclude.clone();
-
         Box::new(move |result| {
-            if let Ok(de) = result {
-                let path = de.into_path();
-                let utf8 = path_to_utf8(path.as_path());
-
-                if path.is_file() && include.is_match(&utf8) && !exclude.is_match(&utf8) {
-                    tx.send(path).unwrap();
-                }
-            }
+            tx.send(result.unwrap()).unwrap();
             ignore::WalkState::Continue
         })
     });
