@@ -1,6 +1,6 @@
 [package]
 name = "filesfinder"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Jérome Eertmans <jeertmans@icloud.com>"]
 edition = "2021"
 description = "Find files within current directory that match given patterns, while respecting gitignore rules."
@@ -20,3 +20,7 @@ ignore = "0.4"
 crossbeam-channel = "0.5"
 regex = "1"
 globset = "0.4"
+
+[[test]]
+name = "same_as_find"
+path = "tests/same_as_find.rs"
