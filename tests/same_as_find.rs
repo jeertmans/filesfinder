@@ -1,7 +1,11 @@
 use std::process::Command;
 
 fn stdout_to_lines_vec(stdout: Vec<u8>) -> Vec<String> {
-    String::from_utf8(stdout).unwrap().lines().map(|s| s.to_string()).collect()
+    String::from_utf8(stdout)
+        .unwrap()
+        .lines()
+        .map(|s| s.to_string())
+        .collect()
 }
 
 #[macro_export]
@@ -38,7 +42,7 @@ macro_rules! assert_same_output {
         let mut right = stdout_to_lines_vec($left.stdout);
         right.sort();
         assert_eq!(left, right);
-    }
+    };
 }
 
 #[test]
@@ -49,6 +53,12 @@ fn test_one_glob_pattern() {
 
 #[test]
 fn test_one_regex_pattern() {
-    assert_same_output!(ff!["-r", r".*\.c"], find![".", "-type", "f", "-regex", r".*\.c"]);
-    assert_same_output!(ff!["-r", r".*\.h"], find![".", "-type", "f", "-regex", r".*\.h"]);
+    assert_same_output!(
+        ff!["-r", r".*\.c"],
+        find![".", "-type", "f", "-regex", r".*\.c"]
+    );
+    assert_same_output!(
+        ff!["-r", r".*\.h"],
+        find![".", "-type", "f", "-regex", r".*\.h"]
+    );
 }
