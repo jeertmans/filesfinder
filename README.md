@@ -16,7 +16,9 @@
 FilesFinder (FF) is a command-line tool that aims to search for files within a given repository.
 As such, it respects your `.gitignore` files and exclude the same files from the output.
 
-FF is a simple-to-use alternative to other tools such as `find` from [Findutils](https://www.gnu.org/software/findutils/manual/html_mono/find.html).
+FF is a fast and simpler-to-use alternative to other tools such as `find` from [Findutils](https://www.gnu.org/software/findutils/manual/html_mono/find.html).
+
+> **NOTE:** FF is not necessarily faster than `find` (or else), but speed is plays an important in its development and you can be sure that opting to `ff` will not decrease performance by much.
 
 ## Installation
 
@@ -69,7 +71,7 @@ OPTIONS:
             Print version information.
 
 NOTES:
-    -   Capitalized options (.e.g. '-G') apply to all subsequent patterns.
+    -   Capitalized options (.e.g., '-G') apply to all subsequent patterns.
         E.g.: 'ff -g "*.rs" -g "*.md"' is equivalent to 'ff -G "*.rs" "*.md"'.
         You can always unset a flag by overriding it.
 
@@ -80,7 +82,7 @@ NOTES:
 
     -   For performance reasons, prefer to use more general patterns first,
         and more specific ones at the end.
-        E.g.: 'ff "*.md" "README.md"' is faster but equivalent to 'ff "README.md" "*.md"'.
+        E.g.: 'ff "*.md" "Cargo.toml"' is faster but equivalent to 'ff "Cargo.toml" "*.md"'.
 ```
 
 ## Examples
@@ -108,6 +110,6 @@ Contributions are more than welcome!
 - [ ] Benchmark the tool against alternatives
 - [ ] Provide other flags for case
 - [ ] Allow to match fullname or basename
-- [ ] Add tests for CI
+- [x] Add tests for CI
 - [ ] Create a GitHub action
 - [ ] ...

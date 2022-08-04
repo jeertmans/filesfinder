@@ -62,7 +62,7 @@ OPTIONS:
             Print version information.
 
 NOTES:
-    -   Capitalized options (.e.g. '-G') apply to all subsequent patterns.
+    -   Capitalized options (.e.g., '-G') apply to all subsequent patterns.
         E.g.: 'ff -g \"*.rs\" -g \"*.md\"' is equivalent to 'ff -G \"*.rs\" \"*.md\"'.
         You can always unset a flag by overriding it.
 
@@ -73,7 +73,7 @@ NOTES:
 
     -   For performance reasons, prefer to use more general patterns first,
         and more specific ones at the end.
-        E.g.: 'ff \"*.md\" \"README.md\"' is faster but equivalent to 'ff \"README.md\" \"*.md\"'."
+        E.g.: 'ff \"*.md\" \"Cargo.toml\"' is (usually) faster but equivalent to 'ff \"Cargo.toml\" \"*.md\"'."
     );
 }
 
