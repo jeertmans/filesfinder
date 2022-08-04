@@ -1,0 +1,19 @@
+name: 'Files Finder'
+description: 'Find files matching patterns'
+inputs:
+  directory:
+    description: 'Search directory'
+    required: true
+    default: '.'
+  args:
+    description: 'Arguments passed to `ff`'
+    required: true
+    default: '*'
+outputs:
+  files:
+    description: 'Files that match input patterns'
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - ${{ inputs.args }}
