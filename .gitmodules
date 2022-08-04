@@ -1,0 +1,4 @@
+[submodule "repos"]
+	path = repos
+	url = git@github.com:jeertmans/repos.git
+	branch = main

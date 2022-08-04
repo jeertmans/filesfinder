@@ -1,6 +1,6 @@
 [package]
 name = "filesfinder"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Jérome Eertmans <jeertmans@icloud.com>"]
 edition = "2021"
 description = "Find files within current directory that match given patterns, while respecting gitignore rules."

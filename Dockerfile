@@ -1,5 +1,7 @@
 # Container image that runs your code
-FROM alpine:3.10
+FROM rust:1.62.1
+
+RUN cargo install filesfinder
 
 # Copies your code file from your action repository to the filesystem path `/` of the container
 COPY entrypoint.sh /entrypoint.sh
