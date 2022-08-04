@@ -1,10 +1,10 @@
 name: 'Files Finder'
+author: 'Jérome Eertmans'
 description: 'Find files matching patterns'
+branding:
+  icon: 'align-left'
+  color: 'blue'
 inputs:
-  directory:
-    description: 'Search directory'
-    required: true
-    default: '.'
   args:
     description: 'Arguments passed to `ff`'
     required: true
