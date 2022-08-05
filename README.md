@@ -111,5 +111,6 @@ Contributions are more than welcome!
 - [ ] Provide other flags for case
 - [ ] Allow to match fullname or basename
 - [x] Add tests for CI
-- [ ] Create a GitHub action
+- [x] Create a GitHub action
+- [ ] Publish pre-built binaries and use them for GitHub action
 - [ ] ...

@@ -1,5 +1,5 @@
 # Container image that runs your code
-FROM rust:1.62.1
+FROM jeertmans/filesfinder
 
 RUN cargo install filesfinder
 

@@ -1,4 +1,4 @@
 #!/bin/sh -l
 
-files=$(ff "$@" | paste -sd " ")
+files=$(echo "$@" | xargs ff | paste -sd " ")
 echo "::set-output name=files::$files"
