@@ -7,8 +7,9 @@
 1. [About](#about)
 2. [Installation](#installation)
 3. [Examples](#examples)
-4. [CHANGELOG](CHANGELOG.md)
-5. [Contributing](#contributing)
+4. [GitHub Action](#github-action)
+5. [CHANGELOG](CHANGELOG.md)
+6. [Contributing](#contributing)
     - [Future features](#future-features)
 
 ## About
@@ -99,6 +100,29 @@ NOTES:
 
 > ff -Re ".*\.md" ".*"
 # List all files except those with 'md' extension, using regular expression
+```
+
+## GitHub Action
+
+A major application to `FF` is to be used within repositories. Therefore, you can also use the FilesFinder` GitHub Action withing your projects.
+
+```yml
+# Your action in .github/workflows
+- name: Checkout repository
+  uses: actions/checkout@v3
+    # Repository name with owner. For example, actions/checkout
+    # Default: ${{ github.repository }}
+    repository: ''
+- name: Find files matching "*.rs" or "*.md"
+  uses: jeertmans/filesfinder@v0.3
+  id: ff # Any id, to be used later to reference to files output
+  with:
+    # Only argument, a single string, to be passed as arguments to ff.
+    # See `ff --help` for more help.
+    # Default: "*"
+    args: "*.rs *.md"
+- name: Print files
+  run: echo "${{ steps.ff.outputs.files }}"
 ```
 
 ## Contributing
