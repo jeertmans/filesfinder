@@ -104,7 +104,7 @@ NOTES:
 
 ## GitHub Action
 
-A major application to `FF` is to be used within repositories. Therefore, you can also use the FilesFinder` GitHub Action withing your projects.
+A major application to `FF` is to be used within repositories. Therefore, you can also use the FilesFinder GitHub Action withing your projects.
 
 ```yml
 # Your action in .github/workflows
