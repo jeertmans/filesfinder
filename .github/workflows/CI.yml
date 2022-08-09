@@ -8,9 +8,26 @@ on:
 name: Publish
 
 jobs:
+  check-versions:
+    name: Check all versions match
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+      - name: Set env
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+      - name: Install ripgrep
+        run:apt-get install ripgrep
+      - name: Find versions in Cargo
+        run: rg --hidden --no-filename --no-line-number --multiline -o 'name = "filesfinder"\nversion = "(.*)"' -Tmd -r 'v$1' >> versions.txt
+      - name: Find versions elsewhere
+        run: rg --hidden --no-filename --no-line-number "^.filesfinder[:@](v.*)" -Tmd -r '$1' >> versions.txt
+      - name: Compare versions
+        run: cat versions.txt | xargs -I {} bash -c 'if [ "{}" == "${{ env.RELEASE_VERSION }}" ]; then echo "versions match"; else echo "version mismatch" && exit 1; fi'
   publish-crate:
     name: Publish binaries on crate.io
     runs-on: ubuntu-latest
+    needs: check-versions
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
@@ -28,6 +45,7 @@ jobs:
   publish-docker:
     name: Publish Docker image
     runs-on: ubuntu-latest
+    needs: publish-crate
     defaults:
       run:
         working-directory: ./docker-image

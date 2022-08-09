@@ -1,5 +1,10 @@
 name: Check own GitHub action
-on: [pull_request]
+on:
+  workflow_run:
+    workflows: ["Publish"]
+    types:
+      - completed
+
 jobs:
   check_action:
     runs-on: ubuntu-latest
@@ -14,7 +19,7 @@ jobs:
       - run: cargo install --path .
       - id: expected
         run: echo "::set-output name=files::$(ff '*.rs' '*.toml' | sort | paste -sd ' ')"
-      - uses: jeertmans/filesfinder@v0.3.1-rc.1
+      - uses: jeertmans/filesfinder@v0.3.1-rc.2
         id: ff
         with:
           args: "*.rs *.toml"

@@ -1,5 +1,5 @@
 # Container image that runs your code
-FROM jeertmans/filesfinder
+FROM jeertmans/filesfinder:v0.3.1-rc.2
 
 # Copies your code file from your action repository to the filesystem path `/` of the container
 COPY entrypoint.sh /entrypoint.sh
