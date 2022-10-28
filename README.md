@@ -109,7 +109,7 @@ A major application to `FF` is to be used within repositories. Therefore, you ca
 ```yml
 # Your action in .github/workflows
 - name: Checkout repository
-  uses: actions/checkout@v3
+  uses: actions/checkout@v3.1.0
     # Repository name with owner. For example, actions/checkout
     # Default: ${{ github.repository }}
     repository: ''
