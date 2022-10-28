@@ -95,14 +95,14 @@ fn print_invalid_short_option(option: char) {
 #[cfg(unix)]
 fn write_path<W: Write>(mut wtr: W, path: &Path) {
     use std::os::unix::ffi::OsStrExt;
-    wtr.write(path.as_os_str().as_bytes()).unwrap();
-    wtr.write(b"\n").unwrap();
+    wtr.write_all(path.as_os_str().as_bytes()).unwrap();
+    wtr.write_all(b"\n").unwrap();
 }
 
 #[cfg(not(unix))]
 fn write_path<W: Write>(mut wtr: W, path: &Path) {
-    wtr.write(path.to_string_lossy().as_bytes()).unwrap();
-    wtr.write(b"\n").unwrap();
+    wtr.write_all(path.to_string_lossy().as_bytes()).unwrap();
+    wtr.write_all(b"\n").unwrap();
 }
 
 #[derive(Clone, Copy)]
@@ -282,7 +282,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let path = de.path();
             let strl = path.to_string_lossy();
             let utf8 = strl.as_bytes();
-            path.is_file() && include.is_match(&utf8) && !exclude.is_match(&utf8)
+            path.is_file() && include.is_match(utf8) && !exclude.is_match(utf8)
         }) {
             write_path(&mut stdout, de.path());
         }
