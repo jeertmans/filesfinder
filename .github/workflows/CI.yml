@@ -4,6 +4,11 @@ on:
     tags:
       - '*'           # Push events to every tag not containing /
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Setup RELEASE_VERSION'
+        type: environment
+        required: true
 
 name: Publish
 
