@@ -109,12 +109,12 @@ A major application to `FF` is to be used within repositories. Therefore, you ca
 ```yml
 # Your action in .github/workflows
 - name: Checkout repository
-  uses: actions/checkout@v3.1.0
+  uses: actions/checkout@v3
     # Repository name with owner. For example, actions/checkout
     # Default: ${{ github.repository }}
     repository: ''
 - name: Find files matching "*.rs" or "*.md"
-  uses: jeertmans/filesfinder@v0.3
+  uses: jeertmans/filesfinder@v0.3.1
   id: ff # Any id, to be used later to reference to files output
   with:
     # Only argument, a single string, to be passed as arguments to ff.
