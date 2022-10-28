@@ -19,4 +19,4 @@ if __name__ == "__main__":
 
                 for pattern in PATTERNS:
                     for m in pattern.finditer(text):
-                        print(f"v{m[1]}")
+                        print(m[1])
