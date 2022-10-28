@@ -19,7 +19,7 @@ jobs:
       - name: Install ripgrep
         run: sudo apt-get install ripgrep
       - name: Echo ripgrep path
-        run: echo $(where rg)
+        run: echo $(which rg)
       - name: Find versions in Cargo
         run: rg --hidden --no-filename --no-line-number --multiline -o 'name = "filesfinder"\nversion = "(.*)"' -Tmd -r 'v$1' >> versions.txt
       - name: Find versions elsewhere
