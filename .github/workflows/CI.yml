@@ -7,7 +7,7 @@ on:
     inputs:
       version:
         description: 'Setup RELEASE_VERSION'
-        required: true 
+        required: true
         type: string
 
 name: Publish
@@ -23,7 +23,7 @@ jobs:
         if: github.event_name != 'workflow_dispatch'
         run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
       - name: Manually set env
-        if:  ${{ inputs.version }} 
+        if:  ${{ inputs.version }}
         run: echo "RELEASE_VERSION=${{ inputs.version }}" >> $GITHUB_ENV
       - name: Compare versions
         run: python list_versions.py | xargs -I {} bash -c 'if [ "{}" == "${{ env.RELEASE_VERSION }}" ]; then echo "versions match"; else echo "version mismatch" && exit 1; fi'
@@ -67,7 +67,7 @@ jobs:
           echo $(echo ${{ github.ref }} | grep -oP '(?<=refs/tags/v).*') >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
       - name: Login to Docker Hub
-        run: echo "${{ secrets.DOCKERHUB_ACCESSTOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin     
+        run: echo "${{ secrets.DOCKERHUB_ACCESSTOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
       - name: Push to Docker Hub
         run: |
           docker buildx build --push \
@@ -76,4 +76,3 @@ jobs:
             --platform linux/amd64,linux/arm64 .
         env:
           DOCKERHUB_REPOSITORY: jeertmans/filesfinder
-
