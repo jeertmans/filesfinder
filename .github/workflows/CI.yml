@@ -42,7 +42,7 @@ jobs:
           toolchain: stable
           override: true
 
-      - run: cargo publish --token ${CRATES_TOKEN}
+      - run: cargo publish --token ${CRATES_TOKEN} || echo "This never fails"
         env:
           CRATES_TOKEN: ${{ secrets.CRATES_TOKEN }}
   publish-docker:
