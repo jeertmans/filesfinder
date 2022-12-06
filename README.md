@@ -114,7 +114,7 @@ A major application to `FF` is to be used within repositories. Therefore, you ca
     # Default: ${{ github.repository }}
     repository: ''
 - name: Find files matching "*.rs" or "*.md"
-  uses: jeertmans/filesfinder@v0.3.4
+  uses: jeertmans/filesfinder@v0.3.5
   id: ff # Any id, to be used later to reference to files output
   with:
     # Only argument, a single string, to be passed as arguments to ff.

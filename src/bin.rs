@@ -3,11 +3,6 @@ use regex::bytes::RegexSetBuilder;
 use std::io::{self, Write};
 use std::path::Path;
 
-const AUTHORS: &str = env!("CARGO_PKG_AUTHORS");
-const DESCRIPTION: &str = env!("CARGO_PKG_DESCRIPTION");
-const NAME: &str = env!("CARGO_PKG_NAME");
-const VERSION: &str = env!("CARGO_PKG_VERSION");
-
 #[macro_export]
 macro_rules! path_as_bytes {
     ($path: ident) => {
@@ -15,12 +10,13 @@ macro_rules! path_as_bytes {
     };
 }
 
+
 fn print_help() {
     println!(
-        "{NAME} {VERSION}
-{AUTHORS}
+        "{} {}
+{}
 
-{DESCRIPTION}
+{}
 
 USAGE:
     ff [OPTIONS] <PATTERN>...
@@ -73,23 +69,21 @@ NOTES:
 
     -   For performance reasons, prefer to use more general patterns first,
         and more specific ones at the end.
-        E.g.: 'ff \"*.md\" \"Cargo.toml\"' is (usually) faster but equivalent to 'ff \"Cargo.toml\" \"*.md\"'."
-    );
+        E.g.: 'ff \"*.md\" \"Cargo.toml\"' is (usually) faster but equivalent to 'ff \"Cargo.toml\" \"*.md\"'.", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"), env!("CARGO_PKG_AUTHORS"), env!("CARGO_PKG_DESCRIPTION"));
+}
+
+#[macro_export]
+macro_rules! print_invalid_option {
+    (@long $option:ident) => {
+        eprintln!("Invalid option --{}. Print help with '--help'.", $option);
+    };
+    (@short $option:ident) => {
+        eprintln!("Invalid option -{}. Print help with '--help'.", $option);
+    };
 }
 
 fn print_version() {
-    println!("{NAME} {VERSION}");
-}
-
-fn print_invalid_option(option: &str) {
-    eprintln!("Invalid option {}. Print help with '--help'.", option);
-}
-
-fn print_invalid_long_option(option: &str) {
-    print_invalid_option(format!("--{}", option).as_str())
-}
-fn print_invalid_short_option(option: char) {
-    print_invalid_option(format!("-{}", option).as_str())
+    println!("{} {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
 }
 
 #[cfg(unix)]
@@ -105,25 +99,22 @@ fn write_path<W: Write>(mut wtr: W, path: &Path) {
     wtr.write_all(b"\n").unwrap();
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 enum MatcherKind {
     Glob,
     Regex,
 }
 
-impl Default for MatcherKind {
-    fn default() -> Self {
-        MatcherKind::Glob
-    }
-}
-
-#[derive(Default)]
 struct MatcherBuilder<'source> {
     pattern: Option<&'source str>,
     kind: MatcherKind,
 }
 
 impl<'source> MatcherBuilder<'source> {
+    #[inline]
+    fn new(kind: MatcherKind) -> Self {
+        Self { pattern: None, kind }
+    }
     #[inline]
     fn set_pattern(mut self, pattern: &'source str) -> Self {
         self.pattern = Some(pattern);
@@ -146,6 +137,7 @@ impl<'source> MatcherBuilder<'source> {
         self.set_kind(MatcherKind::Regex)
     }
 
+    #[inline]
     fn build(self) -> Result<String, Box<dyn std::error::Error>> {
         let pattern = self
             .pattern
@@ -170,7 +162,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut use_gitignore = true;
 
     while !last_arg_seen {
-        let mut matcher = MatcherBuilder::default().set_kind(default_kind);
+        let mut matcher = MatcherBuilder::new(default_kind.clone());
         let mut include_next = default_include;
 
         loop {
@@ -198,7 +190,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             std::process::exit(0);
                         }
                         _ => {
-                            print_invalid_long_option(option);
+                            print_invalid_option!(@long option);
                             std::process::exit(1);
                         }
                     }
@@ -238,7 +230,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 std::process::exit(0);
                             }
                             _ => {
-                                print_invalid_short_option(option);
+                                print_invalid_option!(@short option);
                                 std::process::exit(1);
                             }
                         }
