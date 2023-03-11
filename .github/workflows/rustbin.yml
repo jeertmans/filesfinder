@@ -17,6 +17,9 @@ jobs:
       with:
         submodules: recursive
 
+    - name: Check tree (for submodules)
+      run: tree -L 3
+
     - name: Install stable toolchain
       uses: dtolnay/rust-toolchain@stable
 
