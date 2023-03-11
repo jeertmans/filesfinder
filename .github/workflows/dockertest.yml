@@ -2,7 +2,7 @@ on:
   pull_request:
     paths:
     - '**.rs'
-    - 'docker-image/**'
+    - docker-image/**
     - Cargo.toml
   workflow_dispatch:
 
