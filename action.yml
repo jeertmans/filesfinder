@@ -1,19 +1,19 @@
-name: 'Files Finder'
-author: 'Jérome Eertmans'
-description: 'Find files matching patterns'
+name: Files Finder
+author: Jérome Eertmans
+description: Find files matching patterns
 branding:
-  icon: 'align-left'
-  color: 'blue'
+  icon: align-left
+  color: blue
 inputs:
   args:
-    description: 'Arguments passed to `ff`'
+    description: Arguments passed to `ff`
     required: true
     default: '*'
 outputs:
   files:
-    description: 'Files that match input patterns'
+    description: Files that match input patterns
 runs:
-  using: 'docker'
-  image: 'Dockerfile'
+  using: docker
+  image: Dockerfile
   args:
-    - ${{ inputs.args }}
+  - ${{ inputs.args }}

@@ -1,0 +1,33 @@
+on:
+  pull_request:
+    paths:
+    - src/lib/**.rs
+    - Cargo.toml
+  workflow_dispatch:
+
+name: Binaries testing
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout sources
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+
+    - name: Check tree (for submodules)
+      run: tree -L 3
+
+    - name: Install stable toolchain
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Cache dependencies
+      uses: Swatinem/rust-cache@v2
+
+    - name: Install binaries
+      run: cargo install --path .
+
+    - name: Test binaries
+      run: cargo test --all-features
