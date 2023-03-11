@@ -21,8 +21,6 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
     - name: Build container
-      run: docker build -t test-container .
-    - name: Run container
-      run: docker run --name test-container -d -i -t test-container
-    - name: Exec ff in container
-      run: docker exec -d test-container ff --help
+      run: docker build -t container .
+    - name: Run container and exec
+      run: docker run -it --rm --name running-container container ff --help
