@@ -17,7 +17,8 @@ jobs:
       - run: cargo install --path .
       - id: expected
         run: echo "::set-output name=files::$(ff '*.rs' '*.toml' | sort | paste -sd ' ')"
-      - uses: jeertmans/filesfinder@v0.3.5
+      - name: Uses an action in the root directory
+        uses: ./
         id: ff
         with:
           args: "*.rs *.toml"
