@@ -14,6 +14,8 @@ jobs:
     steps:
     - name: Checkout sources
       uses: actions/checkout@v3
+      with:
+        submodules: true
 
     - name: Install stable toolchain
       uses: dtolnay/rust-toolchain@stable
@@ -22,4 +24,4 @@ jobs:
       uses: Swatinem/rust-cache@v2
 
     - name: Check rustdoc build
-      run: cargo test --bin --all-features
+      run: cargo test --all-features
