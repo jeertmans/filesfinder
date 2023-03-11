@@ -18,29 +18,34 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout sources
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
+
+    - name: Install bump2version
+      run: pip install bump2version
+
     - name: Set env
       if: github.event_name != 'workflow_dispatch'
       run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+
     - name: Manually set env
       if: ${{ inputs.version }}
       run: echo "RELEASE_VERSION=${{ inputs.version }}" >> $GITHUB_ENV
+
     - name: Compare versions
-      run: python list_versions.py | xargs -I {} bash -c 'if [ "{}" == "${{ env.RELEASE_VERSION }}" ]; then echo "versions match"; else echo "version mismatch" && exit 1; fi'
+      run: bump2version patch --dry-run --current-version=${{ env.RELEASE_VERSION }} --new-version=0.0.0
   publish-crate:
     name: Publish binaries on crate.io
     runs-on: ubuntu-latest
     needs: check-versions
     steps:
     - name: Checkout sources
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Install stable toolchain
-      uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        override: true
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Cache dependencies
+      uses: Swatinem/rust-cache@v2
 
     - run: cargo publish --token ${CRATES_TOKEN} || echo "This never fails"
       env:
@@ -54,7 +59,7 @@ jobs:
         working-directory: ./docker-image
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
     - name: Login to Docker Hub
