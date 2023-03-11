@@ -8,8 +8,7 @@
 2. [Installation](#installation)
 3. [Examples](#examples)
 4. [GitHub Action](#github-action)
-5. [CHANGELOG](CHANGELOG.md)
-6. [Contributing](#contributing)
+5. [Contributing](#contributing)
     - [Future features](#future-features)
 
 ## About
