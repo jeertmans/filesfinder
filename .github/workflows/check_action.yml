@@ -7,24 +7,24 @@ jobs:
   check_action:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - run: cargo install --path .
-      - id: expected
-        run: echo "::set-output name=files::$(ff '*.rs' '*.toml' | sort | paste -sd ' ')"
-      - name: Uses an action in the root directory
-        uses: ./
-        id: ff
-        with:
-          args: "*.rs *.toml"
-      - id: actual
-        run: echo "::set-output name=files::$(echo ${{ steps.ff.outputs.files }} | tr ' ' '\n' | sort | paste -sd ' ')"
-      - uses: nick-fields/assert-action@v1
-        with:
-          expected: ${{ steps.expected.outputs.files }}
-          actual: ${{ steps.actual.outputs.files }}
+    - uses: actions/checkout@v2
+    - name: Install stable toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+    - run: cargo install --path .
+    - id: expected
+      run: echo "::set-output name=files::$(ff '*.rs' '*.toml' | sort | paste -sd ' ')"
+    - name: Uses an action in the root directory
+      uses: ./
+      id: ff
+      with:
+        args: '*.rs *.toml'
+    - id: actual
+      run: echo "::set-output name=files::$(echo ${{ steps.ff.outputs.files }} | tr ' ' '\n' | sort | paste -sd ' ')"
+    - uses: nick-fields/assert-action@v1
+      with:
+        expected: ${{ steps.expected.outputs.files }}
+        actual: ${{ steps.actual.outputs.files }}
