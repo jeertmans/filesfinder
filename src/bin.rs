@@ -10,7 +10,6 @@ macro_rules! path_as_bytes {
     };
 }
 
-
 fn print_help() {
     println!(
         "{} {}
@@ -113,7 +112,10 @@ struct MatcherBuilder<'source> {
 impl<'source> MatcherBuilder<'source> {
     #[inline]
     fn new(kind: MatcherKind) -> Self {
-        Self { pattern: None, kind }
+        Self {
+            pattern: None,
+            kind,
+        }
     }
     #[inline]
     fn set_pattern(mut self, pattern: &'source str) -> Self {
