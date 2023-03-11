@@ -19,7 +19,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub action now checks that all versions match
 - Docker image is smaller
 
-
 ## [0.3.0](https://github.com/jeertmans/filesfinder/compare/v0.2.0...v0.3.0) - 2022-08-05
 
 ### Chore
