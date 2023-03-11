@@ -42,6 +42,7 @@ OPTIONS:
 
         --dir <PATH>
             Files will be searched in the directory specified by the PATH.
+            Multiple values are allowed.
             [default: '.']
 
         --show-hidden
@@ -159,9 +160,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut include: Vec<String> = vec![];
     let mut exclude: Vec<String> = vec![];
     let mut last_arg_seen = false;
-    let mut directory = ".".to_string();
+    let mut directories: Vec<String> = vec![];
+    let mut follow_links = false;
     let mut ignore_hidden = true;
     let mut use_gitignore = true;
+    let mut max_depth: Option<usize> = None;
 
     while !last_arg_seen {
         let mut matcher = MatcherBuilder::new(default_kind.clone());
@@ -171,9 +174,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             if let Some(arg) = args.next() {
                 if let Some(option) = arg.strip_prefix("--") {
                     match option {
+                        "max-depth" => {
+                            if let Some(depth) = args.next() {
+                                max_depth = depth.parse().ok();
+                            } else {
+                                eprintln!(
+                                    "--max-depth option is missing a <DEPTH>. Print help with '--help'."
+                                );
+                                std::process::exit(1);
+                            }
+                        }
                         "dir" => {
                             if let Some(path) = args.next() {
-                                directory = path;
+                                directories.push(path);
                             } else {
                                 eprintln!(
                                     "--dir option is missing a <PATH>. Print help with '--help'."
@@ -181,6 +194,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 std::process::exit(1);
                             }
                         }
+                        "follow-links" => follow_links = true,
                         "show-hidden" => ignore_hidden = false,
                         "no-gitignore" => use_gitignore = false,
                         "help" => {
@@ -265,10 +279,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let (tx, rx) = crossbeam_channel::unbounded::<ignore::DirEntry>();
 
-    let walker = ignore::WalkBuilder::new(directory.as_str())
-        .hidden(ignore_hidden)
+    let mut directories = directories.iter().map(|s| s.as_str());
+
+    let mut walk_builder = ignore::WalkBuilder::new(directories.next().unwrap_or("."));
+
+    walk_builder
+        .follow_links(follow_links)
         .git_ignore(use_gitignore)
-        .build_parallel();
+        .hidden(ignore_hidden)
+        .max_depth(max_depth);
+
+    for directory in directories {
+        walk_builder.add(directory);
+    }
+
+    let walker = walk_builder.build_parallel();
 
     let stdout_thread = std::thread::spawn(move || {
         let mut stdout = io::BufWriter::new(io::stdout());
