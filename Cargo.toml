@@ -19,7 +19,7 @@ name = "filesfinder"
 readme = "README.md"
 repository = "https://github.com/jeertmans/filesfinder"
 rust-version = "1.58.1"
-version = "0.3.5"
+version = "0.3.6"
 
 [[test]]
 name = "same_as_find"
