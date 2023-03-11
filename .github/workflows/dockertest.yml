@@ -23,4 +23,4 @@ jobs:
     - name: Build container
       run: docker build -t container .
     - name: Run container and exec
-      run: docker run -it --rm --name running-container container ff --help
+      run: docker run --rm --name running-container container ff --help
