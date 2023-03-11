@@ -30,7 +30,7 @@ jobs:
         args: '*.rs *.toml'
 
     - name: Sort and save action's output
-    - id: actual
+      id: actual
       run: echo "files=$(echo ${{ steps.ff.outputs.files }} | tr ' ' '\n' | sort | paste -sd ' ')" >> $GITHUB_OUTPUT
 
     - name: Compare outputs
