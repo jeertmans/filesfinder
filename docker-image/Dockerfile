@@ -1,5 +1,5 @@
 # Container image that runs your code
-FROM rust:1.61.0-slim AS build
+FROM rust:1.67.0-slim AS build
 RUN rustup target add x86_64-unknown-linux-musl
 RUN cargo install filesfinder --target x86_64-unknown-linux-musl
 
