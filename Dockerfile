@@ -1,5 +1,5 @@
 # Container image that runs your code
-FROM ghcr.io/jeertmans/filesfinder:0.3.6
+FROM ghcr.io/jeertmans/filesfinder:0.3.7
 
 # Copies your code file from your action repository to the filesystem path `/` of the container
 COPY entrypoint.sh /entrypoint.sh
