@@ -63,10 +63,10 @@ OPTIONS:
             Allow to show hidden files.
 
         --no-gitignore
-            ignore .gitignore files.
+            Ignore .gitignore files.
 
         --no-ignore
-            ignore .ignore files.
+            Ignore .ignore files.
 
         --no-strip-prefix
             Do not strip './' prefix, same as what GNU find does.

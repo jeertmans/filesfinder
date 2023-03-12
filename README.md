@@ -49,6 +49,8 @@ OPTIONS:
 
     -r, -R
             Parse pattern as a regular expression.
+            Note that expressions are unanchored by default.
+            Use '^' or '\A' to denote start, and '$' or '\z' for the end. 
 
     -i, -I
             Matching files will be included in the output.
@@ -57,15 +59,34 @@ OPTIONS:
     -e, -E
             Matching files will be excluded from the output.
 
+    -j <JOBS>
+            Number of threads to use.
+            Setting this to zero will choose the number of threads automatically.
+            [default: num_cpus]
+
         --dir <PATH>
             Files will be searched in the directory specified by the PATH.
+            Multiple occurences are allowed.
             [default: '.']
+
+        --max-depth <DEPTH>
+            Maximum depth to recurse.
+            [default: None]
+
+        --follow-links
+            Allow to follow symbolic links.
 
         --show-hidden
             Allow to show hidden files.
 
         --no-gitignore
-            Ignore gitignore files.
+            Ignore .gitignore files.
+
+        --no-ignore
+            Ignore .ignore files.
+
+        --no-strip-prefix
+            Do not strip './' prefix, same as what GNU find does.
 
     -h, --help
             Print help information.
@@ -85,7 +106,7 @@ NOTES:
 
     -   For performance reasons, prefer to use more general patterns first,
         and more specific ones at the end.
-        E.g.: 'ff "*.md" "Cargo.toml"' is faster but equivalent to 'ff "Cargo.toml" "*.md"'.
+        E.g.: 'ff "*.md" "Cargo.toml"' is (usually) faster but equivalent to 'ff "Cargo.toml" "*.md"'.
 ```
 
 ## Examples
