@@ -18,7 +18,7 @@ macro_rules! command {
 #[macro_export]
 macro_rules! ff {
     ($( $args: expr ),* ) => {
-        command!("ff", "--no-gitignore", $($args),*)
+        command!("ff", "--show-hidden", "--no-gitignore", "--no-ignore", "--no-strip-prefix", $($args),*)
     };
 }
 
@@ -34,31 +34,28 @@ macro_rules! assert_same_output {
     ($left:expr, $right:expr) => {
         let left = $left;
         let right = $right;
-        println!("{:?}", right);
         assert_eq!(left.status, right.status);
         assert_eq!(left.stderr, right.stderr);
         let mut left = stdout_to_lines_vec($left.stdout);
         left.sort();
-        let mut right = stdout_to_lines_vec($left.stdout);
+        let mut right = stdout_to_lines_vec($right.stdout);
         right.sort();
-        assert_eq!(left, right);
+        assert_eq!(left.len(), right.len(), "vectors are not of equal length");
+
+        for (l, r) in left.iter().zip(right.iter()) {
+            assert_eq!(l, r);
+        }
     };
 }
 
 #[test]
 fn test_one_glob_pattern() {
-    assert_same_output!(ff!["*.rs"], find![".", "-type", "f", "-name", "*.rs"]);
-    assert_same_output!(ff!["*.toml"], find![".", "-type", "f", "-name", "*.toml"]);
+    assert_same_output!(ff!["*.rs"], find![".", "-wholename", "*.rs"]);
+    assert_same_output!(ff!["*.toml"], find![".", "-wholename", "*.toml"]);
 }
 
 #[test]
 fn test_one_regex_pattern() {
-    assert_same_output!(
-        ff!["-r", r".*\.c"],
-        find![".", "-type", "f", "-regex", r".*\.c"]
-    );
-    assert_same_output!(
-        ff!["-r", r".*\.h"],
-        find![".", "-type", "f", "-regex", r".*\.h"]
-    );
+    assert_same_output!(ff!["-r", r".*\.c$"], find![".", "-regex", r".*\.c"]);
+    assert_same_output!(ff!["-r", r".*\.h$"], find![".", "-regex", r".*\.h"]);
 }
