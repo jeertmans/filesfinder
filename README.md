@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/jeertmans/filesfinder/main/static/logo.svg" width="200" height="200"> </img>
+</p>
+
 # FilesFinder
 
 > Find files matching patterns while respecting `.gitignore`
@@ -9,16 +13,15 @@
 3. [Examples](#examples)
 4. [GitHub Action](#github-action)
 5. [Contributing](#contributing)
-    - [Future features](#future-features)
 
 ## About
 
 FilesFinder (FF) is a command-line tool that aims to search for files within a given repository.
 As such, it respects your `.gitignore` files and exclude the same files from the output.
 
-FF is a fast and simpler-to-use alternative to other tools such as `find` from [Findutils](https://www.gnu.org/software/findutils/manual/html_mono/find.html).
+FF is a **faster** and **simpler-to-use** alternative to other tools such as `find` from [Findutils](https://www.gnu.org/software/findutils/manual/html_mono/find.html).
 
-> **NOTE:** FF is not necessarily faster than `find` (or else), but speed is plays an important in its development and you can be sure that opting to `ff` will not decrease performance by much.
+> **NOTE:** FF is generally faster than `find` (or else), mainly because it uses parallel processing. If you find a scenario in which FF is slower than `find` or any other tool, please report it to me :-)
 
 ## Installation
 
@@ -127,13 +130,3 @@ A major application to `FF` is to be used within repositories. Therefore, you ca
 ## Contributing
 
 Contributions are more than welcome!
-
-### Future features
-
-- [ ] Benchmark the tool against alternatives
-- [ ] Provide other flags for case
-- [ ] Allow to match fullname or basename
-- [x] Add tests for CI
-- [x] Create a GitHub action
-- [ ] Publish pre-built binaries and use them for GitHub action
-- [ ] ...
