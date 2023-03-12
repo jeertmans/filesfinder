@@ -368,8 +368,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let utf8 = strl.as_bytes();
             if path.is_file() && include.is_match(utf8) && !exclude.is_match(utf8) {
                 match tx.send(path.to_path_buf()) {
-                    Ok(_) => return ignore::WalkState::Continue,
-                    Err(_) => return ignore::WalkState::Quit,
+                    Ok(_) => ignore::WalkState::Continue,
+                    Err(_) => ignore::WalkState::Quit,
                 }
             } else {
                 ignore::WalkState::Continue
