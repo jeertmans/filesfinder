@@ -33,7 +33,7 @@ OPTIONS:
     -r, -R
             Parse pattern as a regular expression.
             Note that expressions are unanchored by default.
-            Use '^' or '\\A' to denote start, and '$' or '\\z' for the end. 
+            Use '^' or '\\A' to denote start, and '$' or '\\z' for the end.
 
     -i, -I
             Matching files will be included in the output.
