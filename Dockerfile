@@ -1,8 +1,12 @@
-# Container image that runs your code
-FROM ghcr.io/jeertmans/filesfinder:v0.4.4
+FROM rust:1.67 AS build
+COPY . .
+RUN rustup target add x86_64-unknown-linux-musl
+RUN cargo install --path . --target x86_64-unknown-linux-musl
 
-# Copies your code file from your action repository to the filesystem path `/` of the container
+FROM alpine:3.16.0 AS runtime
+COPY --from=build /usr/local/cargo/bin/ff /usr/local/bin/ff
+
+FROM runtime as action
 COPY entrypoint.sh /entrypoint.sh
 
-# Code file to execute when the docker container starts up (`entrypoint.sh`)
 ENTRYPOINT ["/entrypoint.sh"]
