@@ -48,7 +48,7 @@ dependencies = [
 
 [[package]]
 name = "filesfinder"
-version = "0.4.3"
+version = "0.4.4"
 dependencies = [
  "crossbeam-channel",
  "globset",
