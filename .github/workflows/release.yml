@@ -5,22 +5,6 @@ on:
     types: ["created"]
 
 jobs:
-  create-release:
-    name: create-release
-    runs-on: ubuntu-latest
-    outputs:
-      upload_url: ${{ steps.release.outputs.upload_url }}
-      ff_version: ${{ env.FF_VERSION }}
-    steps:
-    - name: Get the release version from the tag
-      shell: bash
-      run: |
-        # Apparently, this is the right way to get a tag name. Really?
-        #
-        # See: https://github.community/t5/GitHub-Actions/How-to-get-just-the-tag-name/m-p/32167/highlight/true#M1027
-        echo "FF_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-        echo "version is: ${{ env.FF_VERSION }}"
-
   build-release:
     name: build-release
     needs: [create-release]
@@ -59,6 +43,7 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
+
     - name: Install Rust
       uses: actions-rs/toolchain@v1
       with:
@@ -66,6 +51,12 @@ jobs:
         target: ${{ matrix.target }}
         override: true
         profile: minimal
+
+    - name: Get release
+      id: get_release
+      uses: bruceadams/get-release@v1.3.2
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
 
     - name: Setup variables
       shell: bash
@@ -91,7 +82,7 @@ jobs:
     - name: Build archive
       shell: bash
       run: |
-        staging="ff-${{ needs.create-release.outputs.ff_version }}-${{ matrix.target }}"
+        staging="ff-${{ steps.get_release.outputs.tag_name }}-${{ matrix.target }}"
         mkdir -p "$staging"
         cp {README.md,LICENSE.md} "$staging/"
         if [ "${{ matrix.os }}" = "windows-2019" ]; then
@@ -103,12 +94,13 @@ jobs:
           tar czf "$staging.tar.gz" "$staging"
           echo "ASSET=$staging.tar.gz" >> $GITHUB_ENV
         fi
+
     - name: Upload release archive
       uses: actions/upload-release-asset@v1.0.1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        upload_url: ${{ steps.get_release.outputs.upload_url }}
         asset_path: ${{ env.ASSET }}
         asset_name: ${{ env.ASSET }}
         asset_content_type: application/octet-stream
