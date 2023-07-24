@@ -81,7 +81,7 @@ jobs:
     - name: Build archive
       shell: bash
       run: |
-        staging="ff-${{ steps.get_release.outputs.tag_name }}-${{ matrix.target }}"
+        staging="ff-${{ matrix.target }}-${{ steps.get_release.outputs.tag_name }}"
         mkdir -p "$staging"
         cp {README.md,LICENSE.md} "$staging/"
         if [ "${{ matrix.os }}" = "windows-2019" ]; then
