@@ -28,7 +28,7 @@ FF is a **faster** and **simpler-to-use** alternative to other tools such as `fi
 You can install the latest released version with `cargo`:
 
 ```bash
-> cargo install filesfinder
+cargo install filesfinder
 ```
 
 After that, FilesFinder can be used via the `ff` alias.
