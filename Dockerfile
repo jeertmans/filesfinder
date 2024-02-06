@@ -1,4 +1,4 @@
-FROM rust:1.67 AS build
+FROM rust:latest AS build
 COPY . .
 RUN rustup target add x86_64-unknown-linux-musl
 RUN cargo install --path . --target x86_64-unknown-linux-musl
