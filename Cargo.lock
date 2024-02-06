@@ -64,7 +64,6 @@ dependencies = [
  "ignore",
  "num_cpus",
  "regex",
- "regex-syntax",
 ]
 
 [[package]]
