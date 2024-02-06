@@ -3,11 +3,11 @@ name = "ff"
 path = "src/bin.rs"
 
 [dependencies]
-crossbeam-channel = "0.5"
-globset = "0.4"
-ignore = "0.4"
+crossbeam-channel = "0.5.11"
+globset = "0.4.14"
+ignore = "0.4.22"
 num_cpus = "1.16.0"
-regex = "1"
+regex = "1.10.3"
 
 [package]
 authors = ["Jérome Eertmans <jeertmans@icloud.com>"]
@@ -15,11 +15,10 @@ description = "Find files within current directory that match given patterns, wh
 edition = "2021"
 include = ["src/bin.rs", "LICENSE.md", "README.md", "CHANGELOG.md"]
 keywords = ["find", "files", "gitignore"]
-license = "MIT"
 name = "filesfinder"
 readme = "README.md"
 repository = "https://github.com/jeertmans/filesfinder"
-rust-version = "1.63.0"
+rust-version = "1.70.0"
 version = "0.4.13"
 
 [profile.release]
