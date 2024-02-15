@@ -1,13 +1,29 @@
-use globset::GlobBuilder;
-use regex::bytes::RegexSetBuilder;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
+
+use clap::Parser;
+use globset::GlobBuilder;
+use regex::bytes::RegexSetBuilder;
 
 #[macro_export]
 macro_rules! path_as_bytes {
     ($path: ident) => {
         $path.to_string_lossy().as_bytes()
     };
+}
+
+#[derive(Debug, Parser)]
+#[clap(author, version, about)]
+#[clap(bin_name("ff"))]
+struct Args {
+    /// A list of patterns to match against each file.
+    #[arg(num_args(1..))]
+    patterns: Vec<String>,
+    /// Search hidden files and directories.
+    ///
+    /// By default, hidden files and directories are skipped.
+    #[arg(short = '.', long)]
+    hidden: bool,
 }
 
 fn print_help() {
@@ -174,6 +190,9 @@ impl<'source> MatcherBuilder<'source> {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args = Args::parse();
+
+
     let mut args = std::env::args().skip(1);
 
     // Matcher options

@@ -3,6 +3,8 @@ name = "ff"
 path = "src/bin.rs"
 
 [dependencies]
+clap = { version = "4.5.0", features = ["cargo", "derive", "wrap_help"] }
+clap_complete = "4.5.0"
 crossbeam-channel = "0.5.11"
 globset = "0.4.14"
 ignore = "0.4.22"
