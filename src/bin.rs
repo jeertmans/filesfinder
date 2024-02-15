@@ -1,7 +1,7 @@
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
-use clap::Parser;
+use clap::{ArgAction, Parser};
 use globset::GlobBuilder;
 use regex::bytes::RegexSetBuilder;
 
@@ -12,19 +12,19 @@ macro_rules! path_as_bytes {
     };
 }
 
+
+
 #[derive(Debug, Parser)]
 #[clap(author, version, about)]
 #[clap(bin_name("ff"))]
-struct Args {
-    /// A list of patterns to match against each file.
-    #[arg(num_args(1..))]
-    patterns: Vec<String>,
-    /// Search hidden files and directories.
-    ///
-    /// By default, hidden files and directories are skipped.
-    #[arg(short = '.', long)]
-    hidden: bool,
+struct Cli{
+    #[clap(flatten, next_help_heading = "Walker options")]
+	pub walker_options: WalkerOptions,
+    #[clap(flatten, next_help_heading = "Matchers options")]
+	pub matcher_options: MatcherOptions,
 }
+
+
 
 fn print_help() {
     println!(
