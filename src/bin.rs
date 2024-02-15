@@ -1,7 +1,7 @@
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
-use clap::{ArgAction, Parser};
+use clap::{ArgAction, Args, Parser};
 use globset::GlobBuilder;
 use regex::bytes::RegexSetBuilder;
 
@@ -25,6 +25,44 @@ struct Cli{
 }
 
 
+#[derive(Args, Debug)]
+struct WalkerOptions {
+    /// Number of threads to use.
+    ///
+    /// Setting this to zero will choose the number of threads automatically.
+    #[arg(short = 'j', default_value = "0", value_name = "JOBS")]
+    jobs: usize,
+    /// Directory to search for files.
+    #[arg(short = 'd', long = "dir", default_value = ".", action = ArgAction::Append)]
+    directories: Vec<String>,
+    /// Maximum depth to recurse into directories.
+    #[arg(long, value_name = "DEPTH")]
+    max_depth: Option<usize>,
+    /// Allow to follow symbolic links.
+    #[arg(long)]
+    follow_links: bool,
+    /// Search hidden files and directories.
+    ///
+    /// By default, hidden files and directories are skipped.
+    #[arg(short = '.', long, alias = "show-hidden")]
+    hidden: bool,
+    /// Ignore .gitignore files.
+    #[arg(long)]
+    no_gitignore: bool,
+    /// Ignore .ignore files.
+    #[arg(long)]
+    no_ignore: bool,
+    /// Do not strip './' prefix, same as what GNU find does.
+    #[arg(long)]
+    no_strip_prefix: bool,
+}
+
+#[derive(Args, Debug)]
+struct MatcherOptions {
+    /// A pattern to match against each file.
+    #[arg(value_name = "PATTERN", required = true, num_args(1..))]
+    patterns: Vec<String>,
+}
 
 fn print_help() {
     println!(
@@ -190,7 +228,7 @@ impl<'source> MatcherBuilder<'source> {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let args = Args::parse();
+    let args = Cli::parse();
 
 
     let mut args = std::env::args().skip(1);
