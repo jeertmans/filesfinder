@@ -1,7 +1,9 @@
+use std::borrow::Cow;
+use std::collections::BTreeMap;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
-use clap::{ArgAction, Args, Parser};
+use clap::{ArgAction, ArgMatches, Args, FromArgMatches, Parser};
 use globset::GlobBuilder;
 use regex::bytes::RegexSetBuilder;
 
@@ -12,26 +14,43 @@ macro_rules! path_as_bytes {
     };
 }
 
-
-
 #[derive(Debug, Parser)]
-#[clap(author, version, about)]
-#[clap(bin_name("ff"))]
-struct Cli{
-    #[clap(flatten, next_help_heading = "Walker options")]
-	pub walker_options: WalkerOptions,
-    #[clap(flatten, next_help_heading = "Matchers options")]
-	pub matcher_options: MatcherOptions,
+#[command(
+    author,
+    name = "ff",
+    version,
+    about,
+    after_help = "For detailed help usage, see: `ff --help`.",
+    after_long_help = "NOTES:
+    -   Capitalized options (.e.g., '-G') apply to all subsequent patterns.
+        E.g.: 'ff -g \"*.rs\" -g \"*.md\"' is equivalent to 'ff -G \"*.rs\" \"*.md\"'.
+        You can always unset a flag by overriding it.
+
+    -   Options can be grouped under the same '-'.
+        E.g.: 'ff -e -g \"*.rs\"' is equivalent to 'ff -eg \"*.rs\"'.
+
+    -   File exclusion is performed after file inclusion.
+
+    -   For performance reasons, prefer to use more general patterns first,
+        and more specific ones at the end.
+        E.g.: 'ff \"*.md\" \"Cargo.toml\"' is (usually) faster but equivalent to 'ff \"Cargo.toml\" \"*.md\"'.",
+    override_usage = "ff [OPTIONS] <PATTERN>...\n       \
+     ff [OPTIONS] <PATTERN> [OPTIONS] <PATTERN> ..."
+)]
+struct Cli {
+    #[clap(flatten, next_help_heading = "Walk options")]
+    pub walk_options: WalkOptions,
+    #[clap(flatten, next_help_heading = "Match options")]
+    pub match_options: MatchOptions,
 }
 
-
 #[derive(Args, Debug)]
-struct WalkerOptions {
+struct WalkOptions {
     /// Number of threads to use.
     ///
     /// Setting this to zero will choose the number of threads automatically.
-    #[arg(short = 'j', default_value = "0", value_name = "JOBS")]
-    jobs: usize,
+    #[arg(short = 'j', value_name = "JOBS")]
+    threads: Option<usize>,
     /// Directory to search for files.
     #[arg(short = 'd', long = "dir", default_value = ".", action = ArgAction::Append)]
     directories: Vec<String>,
@@ -52,16 +71,216 @@ struct WalkerOptions {
     /// Ignore .ignore files.
     #[arg(long)]
     no_ignore: bool,
+}
+
+impl WalkOptions {
+    pub fn into_builder(self) -> ignore::WalkBuilder {
+        let mut walk_builder = ignore::WalkBuilder::new(&self.directories[0]);
+        walk_builder
+            .follow_links(self.follow_links)
+            .git_ignore(!self.no_gitignore)
+            .hidden(self.hidden)
+            .ignore(!self.no_ignore)
+            .max_depth(self.max_depth)
+            .threads(self.threads.unwrap_or(num_cpus::get()));
+
+        for directory in self.directories[1..].iter() {
+            walk_builder.add(directory);
+        }
+
+        walk_builder
+    }
+}
+
+#[derive(Args, Debug)]
+struct MatchOptions {
+    #[clap(flatten)]
+    patterns: Patterns,
     /// Do not strip './' prefix, same as what GNU find does.
     #[arg(long)]
     no_strip_prefix: bool,
 }
 
-#[derive(Args, Debug)]
-struct MatcherOptions {
-    /// A pattern to match against each file.
-    #[arg(value_name = "PATTERN", required = true, num_args(1..))]
-    patterns: Vec<String>,
+#[derive(Debug, Default)]
+struct Patterns {
+    include: Vec<String>,
+    exclude: Vec<String>,
+}
+
+#[derive(Debug)]
+enum Flag {
+    Glob(bool),
+    Regex(bool),
+    Include(bool),
+    Exclude(bool),
+}
+
+impl clap::FromArgMatches for Patterns {
+    fn from_arg_matches(matches: &ArgMatches) -> Result<Self, clap::Error> {
+        let patterns = matches
+            .get_many::<&str>("patterns")
+            .map(|v| v.collect::<Vec<_>>())
+            .unwrap_or_else(Vec::new);
+
+        let pattern_indices = matches.indices_of("patterns").unwrap();
+        let mut flags = BTreeMap::new();
+
+        matches.indices_of("glob").map(|indices| {
+            indices.for_each(|index| {
+                flags.insert(index, Flag::Glob(true));
+            })
+        });
+
+        matches.indices_of("regex").map(|indices| {
+            indices.for_each(|index| {
+                flags.insert(index, Flag::Regex(true));
+            })
+        });
+
+        matches.indices_of("include").map(|indices| {
+            indices.for_each(|index| {
+                flags.insert(index, Flag::Include(true));
+            })
+        });
+
+        matches.indices_of("exclude").map(|indices| {
+            indices.for_each(|index| {
+                flags.insert(index, Flag::Exclude(true));
+            })
+        });
+
+        let mut glob_is_default = true;
+        let mut include_is_default = true;
+
+        let mut flags: Vec<(usize, Flag)> = flags.into_iter().collect();
+        let mut include_patterns: Vec<Cow<'str>> = Vec::new();
+        let mut exclude_patterns: Vec<Cow<'str>> = Vec::new();
+
+        for (index, pattern_str) in pattern_indices.into_iter().zip(patterns) {
+            let mut glob = glob_is_default;
+            let mut include = include_is_default;
+
+            let i = flags.partition_point(|(i, _)| *i < index);
+            for (_, flag) in flags.drain(0..i) {
+                match flag {
+                    Flag::Glob(_) => glob = true,
+                    Flag::Regex(_) => glob = false,
+                    Flag::Include(_) => include = true,
+                    Flag::Exclude(_) => include = false,
+                }
+            }
+
+            if glob {
+                pattern = GlobBuilder::new(pattern_str).build().unwrap().regex().to_string();
+            }
+
+            if include {
+                include_patterns.push(pattern);
+            } else {
+                exclude_patterns.push(pattern);
+            }
+
+            let include = RegexSetBuilder::new(include_patterns).build().unwrap();
+            let exclude = RegexSetBuilder::new(exclude_patterns).build().unwrap();
+            
+        }
+        //println!("{:#?}", flags);
+
+        Ok(Self::default())
+    }
+    fn update_from_arg_matches(&mut self, matches: &clap::ArgMatches) -> Result<(), clap::Error> {
+        <Self as FromArgMatches>::from_arg_matches(matches).map(|other| {
+            self.include.extend_from_slice(other.include.as_ref());
+            self.exclude.extend_from_slice(other.exclude.as_ref());
+        })
+    }
+}
+
+impl clap::Args for Patterns {
+    fn group_id() -> Option<clap::Id> {
+        Some(clap::Id::from("Patterns"))
+    }
+    fn augment_args(cmd: clap::Command) -> clap::Command {
+        {
+            cmd.group(clap::ArgGroup::new("Patterns").multiple(true).args({
+                let members: [clap::Id; 5usize] = [
+                    clap::Id::from("patterns"),
+                    clap::Id::from("glob"),
+                    clap::Id::from("regex"),
+                    clap::Id::from("include"),
+                    clap::Id::from("exclude"),
+                ];
+                members
+            }))
+            .arg(
+                clap::Arg::new("patterns")
+                    .value_name("PATTERN")
+                    .num_args(1..)
+                    .value_parser({ clap::builder::NonEmptyStringValueParser::new() })
+                    .action(clap::ArgAction::Append)
+                    .help("A pattern to match against each file")
+                    .long_help(None)
+                    .required(true)
+                    .help_heading(None),
+            )
+            .arg(
+                clap::Arg::new("glob")
+                    .short('g')
+                    .num_args(0)
+                    .default_missing_value("true")
+                    .default_value("false")
+                    .action(clap::ArgAction::Append)
+                    .help("Parse pattern as a glob expression")
+                    .long_help(None),
+            )
+            .arg(
+                clap::Arg::new("regex")
+                    .short('r')
+                    .num_args(0)
+                    .default_missing_value("true")
+                    .default_value("false")
+                    .action(clap::ArgAction::Append)
+                    .help("Parse pattern as a regular expression")
+                    .long_help(
+                        "Parse pattern as a regular expression.\n\n\
+                               Note that expressions are unanchored by default. \
+                               Use '^' or '\\\\A' to denote start, and '$' or \
+                               '\\\\z' for the end.",
+                    ),
+            )
+            .arg(
+                clap::Arg::new("include")
+                    .short('i')
+                    .num_args(0)
+                    .default_missing_value("true")
+                    .default_value("false")
+                    .action(clap::ArgAction::Append)
+                    .help("Matching files will be included in the output")
+                    .long_help(None),
+            )
+            .arg(
+                clap::Arg::new("exclude")
+                    .short('e')
+                    .num_args(0)
+                    .default_missing_value("true")
+                    .default_value("false")
+                    .action(clap::ArgAction::Append)
+                    .help("Matching files will be excluded from the output")
+                    .long_help(None),
+            )
+        }
+    }
+    fn augment_args_for_update(cmd: clap::Command) -> clap::Command {
+        {
+            <Self as clap::Args>::augment_args(cmd)
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+enum Pattern {
+    Include(String),
+    Exclude(String),
 }
 
 fn print_help() {
@@ -129,35 +348,12 @@ OPTIONS:
             Print help information.
 
     -V, --version
-            Print version information.
-
-NOTES:
-    -   Capitalized options (.e.g., '-G') apply to all subsequent patterns.
-        E.g.: 'ff -g \"*.rs\" -g \"*.md\"' is equivalent to 'ff -G \"*.rs\" \"*.md\"'.
-        You can always unset a flag by overriding it.
-
-    -   Options can be grouped under the same '-'.
-        E.g.: 'ff -e -g \"*.rs\"' is equivalent to 'ff -eg \"*.rs\"'.
-
-    -   File exclusion is performed after file inclusion.
-
-    -   For performance reasons, prefer to use more general patterns first,
-        and more specific ones at the end.
-        E.g.: 'ff \"*.md\" \"Cargo.toml\"' is (usually) faster but equivalent to 'ff \"Cargo.toml\" \"*.md\"'.", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"), env!("CARGO_PKG_AUTHORS"), env!("CARGO_PKG_DESCRIPTION"));
-}
-
-#[macro_export]
-macro_rules! print_invalid_option {
-    (@long $option:ident) => {
-        eprintln!("Invalid option --{}. Print help with '--help'.", $option);
-    };
-    (@short $option:ident) => {
-        eprintln!("Invalid option -{}. Print help with '--help'.", $option);
-    };
-}
-
-fn print_version() {
-    println!("{} {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
+            Print version information.",
+        env!("CARGO_PKG_NAME"),
+        env!("CARGO_PKG_VERSION"),
+        env!("CARGO_PKG_AUTHORS"),
+        env!("CARGO_PKG_DESCRIPTION")
+    );
 }
 
 #[cfg(unix)]
@@ -173,226 +369,29 @@ fn write_path<W: Write>(mut wtr: W, path: &Path) {
     wtr.write_all(b"\n").unwrap();
 }
 
-#[derive(Clone)]
-enum MatcherKind {
-    Glob,
-    Regex,
-}
-
-struct MatcherBuilder<'source> {
-    pattern: Option<&'source str>,
-    kind: MatcherKind,
-}
-
-impl<'source> MatcherBuilder<'source> {
-    #[inline]
-    fn new(kind: MatcherKind) -> Self {
-        Self {
-            pattern: None,
-            kind,
-        }
-    }
-    #[inline]
-    fn set_pattern(mut self, pattern: &'source str) -> Self {
-        self.pattern = Some(pattern);
-        self
-    }
-
-    #[inline]
-    fn set_kind(mut self, kind: MatcherKind) -> Self {
-        self.kind = kind;
-        self
-    }
-
-    #[inline]
-    fn set_glob(self) -> Self {
-        self.set_kind(MatcherKind::Glob)
-    }
-
-    #[inline]
-    fn set_regex(self) -> Self {
-        self.set_kind(MatcherKind::Regex)
-    }
-
-    #[inline]
-    fn build(self) -> Result<String, Box<dyn std::error::Error>> {
-        let pattern = self
-            .pattern
-            .expect("cannot build matcher if pattern is not set.");
-
-        match self.kind {
-            MatcherKind::Glob => Ok(GlobBuilder::new(pattern).build()?.regex().to_string()),
-            MatcherKind::Regex => Ok(pattern.to_string()),
-        }
-    }
-}
-
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    use clap::CommandFactory;
+    let mut arg_matches = Cli::command().get_matches();
+
+    let walk_option = <WalkOptions as FromArgMatches>::from_arg_matches_mut(&mut arg_matches);
+
+    println!("There");
+
+    for id in arg_matches.ids() {
+        println!("{:#?}", id);
+    }
+
     let args = Cli::parse();
 
-
-    let mut args = std::env::args().skip(1);
-
-    // Matcher options
-    let mut default_kind = MatcherKind::Glob;
-    let mut default_include = true;
-    let mut include: Vec<String> = vec![];
-    let mut exclude: Vec<String> = vec![];
-    let mut strip_prefix: bool = true;
-
-    // Walker options
-    let mut directories: Vec<String> = vec![];
-    let mut follow_links = false;
-    let mut use_gitignore = true;
-    let mut use_ignore = true;
-    let mut ignore_hidden = true;
-    let mut max_depth: Option<usize> = None;
-    let mut threads: Option<usize> = None;
-
-    let mut last_arg_seen = false;
-
-    while !last_arg_seen {
-        let mut matcher = MatcherBuilder::new(default_kind.clone());
-        let mut include_next = default_include;
-
-        loop {
-            if let Some(arg) = args.next() {
-                if let Some(option) = arg.strip_prefix("--") {
-                    match option {
-                        "dir" => {
-                            if let Some(path) = args.next() {
-                                directories.push(path);
-                            } else {
-                                eprintln!(
-                                    "Error: --dir option is missing a <PATH>. Print help with '--help'."
-                                );
-                                std::process::exit(1);
-                            }
-                        }
-                        "follow-links" => follow_links = true,
-                        "show-hidden" => ignore_hidden = false,
-                        "no-gitignore" => use_gitignore = false,
-                        "no-ignore" => use_ignore = false,
-                        "no-strip-prefix" => strip_prefix = false,
-                        "max-depth" => {
-                            if let Some(depth) = args.next() {
-                                max_depth = depth.parse().ok();
-                            } else {
-                                eprintln!(
-                                    "Error: --max-depth option is missing a <DEPTH>. Print help with '--help'."
-                                );
-                                std::process::exit(1);
-                            }
-                        }
-                        "help" => {
-                            print_help();
-                            std::process::exit(0);
-                        }
-                        "version" => {
-                            print_version();
-                            std::process::exit(0);
-                        }
-                        _ => {
-                            print_invalid_option!(@long option);
-                            std::process::exit(1);
-                        }
-                    }
-                } else if let Some(options) = arg.strip_prefix('-') {
-                    for option in options.chars() {
-                        match option {
-                            'g' | 'G' => {
-                                matcher = matcher.set_glob();
-                                if option == 'G' {
-                                    default_kind = MatcherKind::Glob;
-                                }
-                            }
-                            'r' | 'R' => {
-                                matcher = matcher.set_regex();
-                                if option == 'R' {
-                                    default_kind = MatcherKind::Regex;
-                                }
-                            }
-                            'i' | 'I' => {
-                                include_next = true;
-                                if option == 'I' {
-                                    default_include = true;
-                                }
-                            }
-                            'e' | 'E' => {
-                                include_next = false;
-                                if option == 'E' {
-                                    default_include = false;
-                                }
-                            }
-                            'j' => {
-                                if let Some(jobs) = args.next() {
-                                    threads = jobs.parse().ok();
-                                } else {
-                                    eprintln!(
-                                    "error: -j option is missing a <JOBS>. Print help with '--help'."
-                                );
-                                    std::process::exit(1);
-                                }
-                            }
-                            'h' => {
-                                print_help();
-                                std::process::exit(0);
-                            }
-                            'V' => {
-                                print_version();
-                                std::process::exit(0);
-                            }
-                            _ => {
-                                print_invalid_option!(@short option);
-                                std::process::exit(1);
-                            }
-                        }
-                    }
-                } else {
-                    let matcher = matcher.set_pattern(arg.as_str()).build()?;
-                    if include_next {
-                        include.push(matcher);
-                    } else {
-                        exclude.push(matcher);
-                    }
-                    break;
-                }
-            } else {
-                last_arg_seen = true;
-                break;
-            }
-        }
-    }
-
-    if (include.is_empty()) && (exclude.is_empty()) {
-        eprintln!(
-            "No patterns were speficied, please provide at leat one. Print help with '--help'."
-        );
-        std::process::exit(1);
-    }
+    let include: Vec<String> = vec![];
+    let exclude: Vec<String> = vec![];
 
     let include = RegexSetBuilder::new(include).build()?;
     let exclude = RegexSetBuilder::new(exclude).build()?;
 
     let (tx, rx) = crossbeam_channel::unbounded::<PathBuf>();
 
-    let mut directories = directories.iter().map(|s| s.as_str());
-
-    let mut walk_builder = ignore::WalkBuilder::new(directories.next().unwrap_or("."));
-
-    walk_builder
-        .follow_links(follow_links)
-        .git_ignore(use_gitignore)
-        .hidden(ignore_hidden)
-        .ignore(use_ignore)
-        .max_depth(max_depth)
-        .threads(threads.unwrap_or(num_cpus::get()));
-
-    for directory in directories {
-        walk_builder.add(directory);
-    }
-
-    let walker = walk_builder.build_parallel();
+    let walker = args.walk_options.into_builder().build_parallel();
 
     let mut stdout = io::BufWriter::new(io::stdout());
 
@@ -401,6 +400,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             write_path(&mut stdout, path_buf.as_path());
         }
     });
+
+    let strip_prefix = true;
 
     walker.run(|| {
         let tx = tx.clone();
