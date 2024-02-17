@@ -65,7 +65,7 @@ struct WalkOptions {
     ///
     /// By default, hidden files and directories are skipped.
     #[arg(short = '.', long, alias = "show-hidden")]
-    hidden: bool,
+    show_hidden: bool,
     /// Ignore .gitignore files.
     #[arg(long)]
     no_gitignore: bool,
@@ -80,7 +80,7 @@ impl WalkOptions {
         walk_builder
             .follow_links(self.follow_links)
             .git_ignore(!self.no_gitignore)
-            .hidden(self.hidden)
+            .hidden(!self.show_hidden)
             .ignore(!self.no_ignore)
             .max_depth(self.max_depth)
             .threads(self.threads.unwrap_or(num_cpus::get()));

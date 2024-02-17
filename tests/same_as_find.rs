@@ -1,6 +1,7 @@
+use std::collections::HashSet;
 use std::process::Command;
 
-fn stdout_to_lines_vec(stdout: Vec<u8>) -> Vec<String> {
+fn stdout_to_paths_set(stdout: Vec<u8>) -> HashSet<String> {
     String::from_utf8(stdout)
         .unwrap()
         .lines()
@@ -36,15 +37,16 @@ macro_rules! assert_same_output {
         let right = $right;
         assert_eq!(left.status, right.status);
         assert_eq!(left.stderr, right.stderr);
-        let mut left = stdout_to_lines_vec($left.stdout);
-        left.sort();
-        let mut right = stdout_to_lines_vec($right.stdout);
-        right.sort();
-        assert_eq!(left.len(), right.len(), "vectors are not of equal length");
+        let left = stdout_to_paths_set($left.stdout);
+        let right = stdout_to_paths_set($right.stdout);
 
-        for (l, r) in left.iter().zip(right.iter()) {
-            assert_eq!(l, r);
-        }
+        let diff_lr: Vec<_> = left.difference(&right).collect();
+        let diff_rl: Vec<_> = right.difference(&left).collect();
+
+        assert!(
+            diff_lr.is_empty() && diff_rl.is_empty(),
+            "Outputs are differing: left contains {diff_lr:#?} and right contains {diff_rl:#?}"
+        );
     };
 }
 
