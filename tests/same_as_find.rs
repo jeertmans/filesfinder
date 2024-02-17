@@ -18,7 +18,7 @@ macro_rules! command {
 #[macro_export]
 macro_rules! ff {
     ($( $args: expr ),* ) => {
-        command!("ff", "--show-hidden", "--no-gitignore", "--no-ignore", "--no-strip-prefix", $($args),*)
+        command!("ff", "--hidden", "--no-gitignore", "--no-ignore", "--no-strip-prefix", $($args),*)
     };
 }
 

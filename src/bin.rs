@@ -152,7 +152,7 @@ impl clap::FromArgMatches for Patterns {
 
         if let Some(indices) = matches.indices_of("include") {
             indices.for_each(|index| {
-                flags.insert(index, Flag::Include(true));
+                flags.insert(index, Flag::Include(false));
             })
         }
 
