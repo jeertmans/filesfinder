@@ -1,6 +1,11 @@
+use std::collections::HashSet;
 use std::process::Command;
 
-fn stdout_to_lines_vec(stdout: Vec<u8>) -> Vec<String> {
+mod common;
+
+use common::{FF_BIN, REPOS_DIR};
+
+fn stdout_to_paths_set(stdout: Vec<u8>) -> HashSet<String> {
     String::from_utf8(stdout)
         .unwrap()
         .lines()
@@ -18,14 +23,14 @@ macro_rules! command {
 #[macro_export]
 macro_rules! ff {
     ($( $args: expr ),* ) => {
-        command!("ff", "--show-hidden", "--no-gitignore", "--no-ignore", "--no-strip-prefix", $($args),*)
+        command!(FF_BIN, "-d", REPOS_DIR, "--hidden", "--no-gitignore", "--no-ignore", "--no-strip-prefix", $($args),*)
     };
 }
 
 #[macro_export]
 macro_rules! find {
     ($( $args: expr ),* ) => {
-        command!("find", $($args),*)
+        command!("find", REPOS_DIR, $($args),*)
     };
 }
 
@@ -36,26 +41,27 @@ macro_rules! assert_same_output {
         let right = $right;
         assert_eq!(left.status, right.status);
         assert_eq!(left.stderr, right.stderr);
-        let mut left = stdout_to_lines_vec($left.stdout);
-        left.sort();
-        let mut right = stdout_to_lines_vec($right.stdout);
-        right.sort();
-        assert_eq!(left.len(), right.len(), "vectors are not of equal length");
+        let left = stdout_to_paths_set($left.stdout);
+        let right = stdout_to_paths_set($right.stdout);
 
-        for (l, r) in left.iter().zip(right.iter()) {
-            assert_eq!(l, r);
-        }
+        let diff_lr: Vec<_> = left.difference(&right).collect();
+        let diff_rl: Vec<_> = right.difference(&left).collect();
+
+        assert!(
+            diff_lr.is_empty() && diff_rl.is_empty(),
+            "Outputs are differing: left contains {diff_lr:#?} and right contains {diff_rl:#?}"
+        );
     };
 }
 
 #[test]
 fn test_one_glob_pattern() {
-    assert_same_output!(ff!["*.rs"], find![".", "-wholename", "*.rs"]);
-    assert_same_output!(ff!["*.toml"], find![".", "-wholename", "*.toml"]);
+    assert_same_output!(ff!["*.rs"], find!["-wholename", "*.rs"]);
+    assert_same_output!(ff!["*.toml"], find!["-wholename", "*.toml"]);
 }
 
 #[test]
 fn test_one_regex_pattern() {
-    assert_same_output!(ff!["-r", r".*\.c$"], find![".", "-regex", r".*\.c"]);
-    assert_same_output!(ff!["-r", r".*\.h$"], find![".", "-regex", r".*\.h"]);
+    assert_same_output!(ff!["-r", r".*\.c$"], find!["-regex", r".*\.c"]);
+    assert_same_output!(ff!["-r", r".*\.h$"], find!["-regex", r".*\.h"]);
 }
