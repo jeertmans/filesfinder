@@ -64,7 +64,7 @@ struct WalkOptions {
     /// Search hidden files and directories.
     ///
     /// By default, hidden files and directories are skipped.
-    #[arg(short = '.', long, alias = "show-hidden")]
+    #[arg(short = '.', long = "hidden", alias = "show-hidden")]
     show_hidden: bool,
     /// Ignore .gitignore files.
     #[arg(long)]
