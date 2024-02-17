@@ -17,7 +17,7 @@ macro_rules! path_as_bytes {
 #[derive(Debug, Parser)]
 #[command(
     author,
-    name = "ff",
+    name = "filesfinder",
     version,
     about,
     after_help = "For detailed help usage, see: `ff --help`.",
