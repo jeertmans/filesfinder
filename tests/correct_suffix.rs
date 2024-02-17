@@ -1,5 +1,9 @@
 use std::process::Command;
 
+mod common;
+
+use common::{FF_BIN, REPOS_DIR};
+
 fn stdout_to_lines_vec(stdout: Vec<u8>) -> Vec<String> {
     String::from_utf8(stdout)
         .unwrap()
@@ -9,9 +13,9 @@ fn stdout_to_lines_vec(stdout: Vec<u8>) -> Vec<String> {
 }
 
 #[macro_export]
-macro_rules! command {
+macro_rules! ff {
     ($name: expr, $( $args: expr ),* ) => {
-        Command::new($name).args(vec![$($args),*]).output().unwrap()
+        Command::new($name).args(vec![FF_BIN, "-d", REPOS_DIR, $($args),*]).output().unwrap()
     };
 }
 
@@ -47,24 +51,24 @@ macro_rules! assert_correct_suffix {
 
 #[test]
 fn test_one_glob_pattern() {
-    assert_correct_suffix!(@include command!["ff", "*.rs"], &[".rs"]);
-    assert_correct_suffix!(@exclude command!["ff", "*", "-e", "*.rs"], &[".rs"]);
+    assert_correct_suffix!(@include ff!["ff", "*.rs"], &[".rs"]);
+    assert_correct_suffix!(@exclude ff!["ff", "*", "-e", "*.rs"], &[".rs"]);
 }
 
 #[test]
 fn test_one_regex_pattern() {
-    assert_correct_suffix!(@include command!["ff", "-r", r".*\.c$"], &[".c"]);
-    assert_correct_suffix!(@exclude command!["ff", "*", "-er", r".*\.c$"], &[".c"]);
+    assert_correct_suffix!(@include ff!["ff", "-r", r".*\.c$"], &[".c"]);
+    assert_correct_suffix!(@exclude ff!["ff", "*", "-er", r".*\.c$"], &[".c"]);
 }
 
 #[test]
 fn test_two_glob_patterns() {
-    assert_correct_suffix!(@include command!["ff", "*.rs", "*.toml"], &[".rs", ".toml"]);
-    assert_correct_suffix!(@exclude command!["ff", "*", "-e", "*.rs", "-e", "*.toml"], &[".rs", ".toml"]);
+    assert_correct_suffix!(@include ff!["ff", "*.rs", "*.toml"], &[".rs", ".toml"]);
+    assert_correct_suffix!(@exclude ff!["ff", "*", "-e", "*.rs", "-e", "*.toml"], &[".rs", ".toml"]);
 }
 
 #[test]
 fn test_two_regex_patterns() {
-    assert_correct_suffix!(@include command!["ff", "-r", r".*\.c$", "-r", r".*\.h$"], &[".c", ".h"]);
-    assert_correct_suffix!(@exclude command!["ff", "*", "-er", r".*\.c$", "-er", r".*\.h$"], &[".c", ".h"]);
+    assert_correct_suffix!(@include ff!["ff", "-r", r".*\.c$", "-r", r".*\.h$"], &[".c", ".h"]);
+    assert_correct_suffix!(@exclude ff!["ff", "*", "-er", r".*\.c$", "-er", r".*\.h$"], &[".c", ".h"]);
 }

@@ -1,8 +1,9 @@
 use std::collections::HashSet;
 use std::process::Command;
 
-const REPOS_DIR: &'static str = concat!(env!("CARGO_MANIFEST_DIR"), "/repos");
-const FF_BIN: &'static str = env!("CARGO_BIN_EXE_ff");
+mod common;
+
+use common::{FF_BIN, REPOS_DIR};
 
 fn stdout_to_paths_set(stdout: Vec<u8>) -> HashSet<String> {
     String::from_utf8(stdout)
