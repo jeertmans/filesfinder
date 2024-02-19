@@ -1,8 +1,8 @@
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::io::{self, Write};
-use std::path::Path;
 
+use bstr::ByteVec;
 use clap::{ArgAction, ArgMatches, Args, FromArgMatches, Parser};
 use globset::Glob;
 use regex::bytes::{RegexSet, RegexSetBuilder};
@@ -379,7 +379,7 @@ fn main() {
     let stdout_thread = std::thread::spawn(move || {
         for path_as_bytes in rx {
             stdout.write_all(path_as_bytes.as_ref()).unwrap();
-            stdout.write(b"\n").unwrap();
+            stdout.write_all(b"\n").unwrap();
         }
     });
 
@@ -402,21 +402,10 @@ fn main() {
                 }
             }
 
-            #[cfg(unix)]
-            #[inline(always)]
-            fn path_to_bytes(path: &Path) -> &[u8] {
-                use std::os::unix::ffi::OsStrExt;
-                path.as_os_str().as_bytes()
-            }
-
-            #[cfg(not(unix))]
-            #[inline(always)]
-            fn path_to_bytes(path: &Path) -> &[u8] {
-                path.to_string_lossy.as_bytes()
-            }
-
-            let path_as_bytes = path_to_bytes(path);
-            if path.is_file() && include.is_match(path_as_bytes) && !exclude.is_match(path_as_bytes)
+            let path_as_bytes = Vec::from_path_lossy(path);
+            if path.is_file()
+                && include.is_match(path_as_bytes.as_ref())
+                && !exclude.is_match(path_as_bytes.as_ref())
             {
                 match tx.send(path_as_bytes.to_vec()) {
                     Ok(_) => ignore::WalkState::Continue,
