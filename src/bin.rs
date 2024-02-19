@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::io::{self, Write};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use clap::{ArgAction, ArgMatches, Args, FromArgMatches, Parser};
 use globset::Glob;
@@ -367,19 +367,6 @@ impl clap::Args for Patterns {
     }
 }
 
-#[cfg(unix)]
-fn write_path<W: Write>(mut wtr: W, path: &Path) {
-    use std::os::unix::ffi::OsStrExt;
-    wtr.write_all(path.as_os_str().as_bytes()).unwrap();
-    wtr.write_all(b"\n").unwrap();
-}
-
-#[cfg(not(unix))]
-fn write_path<W: Write>(mut wtr: W, path: &Path) {
-    wtr.write_all(path.to_string_lossy().as_bytes()).unwrap();
-    wtr.write_all(b"\n").unwrap();
-}
-
 fn main() {
     let Cli {
         walk_options,
@@ -390,15 +377,16 @@ fn main() {
             },
     } = Cli::parse();
 
-    let (tx, rx) = crossbeam_channel::unbounded::<PathBuf>();
+    let (tx, rx) = crossbeam_channel::unbounded::<Vec<u8>>();
 
     let walker = walk_options.into_builder().build_parallel();
 
     let mut stdout = io::BufWriter::new(io::stdout());
 
     let stdout_thread = std::thread::spawn(move || {
-        for path_buf in rx {
-            write_path(&mut stdout, path_buf.as_path());
+        for path_as_bytes in rx {
+            stdout.write_all(path_as_bytes.as_ref()).unwrap();
+            stdout.write(b"\n").unwrap();
         }
     });
 
@@ -421,10 +409,23 @@ fn main() {
                 }
             }
 
-            let strl = path.to_string_lossy();
-            let utf8 = strl.as_bytes();
-            if path.is_file() && include.is_match(utf8) && !exclude.is_match(utf8) {
-                match tx.send(path.to_path_buf()) {
+            #[cfg(unix)]
+            #[inline(always)]
+            fn path_to_bytes(path: &Path) -> &[u8] {
+                use std::os::unix::ffi::OsStrExt;
+                path.as_os_str().as_bytes()
+            }
+
+            #[cfg(not(unix))]
+            #[inline(always)]
+            fn path_to_bytes(path: &Path) -> &[u8] {
+                path.to_string_lossy.as_bytes()
+            }
+
+            let path_as_bytes = path_to_bytes(path);
+            if path.is_file() && include.is_match(path_as_bytes) && !exclude.is_match(path_as_bytes)
+            {
+                match tx.send(path_as_bytes.to_vec()) {
                     Ok(_) => ignore::WalkState::Continue,
                     Err(_) => ignore::WalkState::Quit,
                 }
