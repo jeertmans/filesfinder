@@ -7,13 +7,6 @@ use clap::{ArgAction, ArgMatches, Args, FromArgMatches, Parser};
 use globset::Glob;
 use regex::bytes::{RegexSet, RegexSetBuilder};
 
-#[macro_export]
-macro_rules! path_as_bytes {
-    ($path: ident) => {
-        $path.to_string_lossy().as_bytes()
-    };
-}
-
 #[derive(Debug, Parser)]
 #[command(
     author,
