@@ -198,7 +198,7 @@ dependencies = [
 
 [[package]]
 name = "filesfinder"
-version = "0.4.13"
+version = "0.5.0"
 dependencies = [
  "clap",
  "clap_complete",
