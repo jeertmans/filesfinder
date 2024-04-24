@@ -34,67 +34,70 @@ cargo install filesfinder
 After that, FilesFinder can be used via the `ff` alias.
 
 ```text
-USAGE:
-    ff [OPTIONS] <PATTERN>...
-    ff [OPTIONS] <PATTERN> [OPTIONS] <PATTERN> ...
+Find files within current directory that match given patterns, while respecting gitignore rules.
 
-ARGS:
-    <PATTERN>...
-            A pattern to match against each file.
+Usage: ff [OPTIONS] <PATTERN>...
+       ff [OPTIONS] <PATTERN> [OPTIONS] <PATTERN> ...
 
-OPTIONS:
-    -g, -G
-            Parse pattern as a glob expression.
-            [default behavior]
+Arguments:
+  <PATTERN>...
+          A pattern to match against each file
 
-    -r, -R
-            Parse pattern as a regular expression.
-            Note that expressions are unanchored by default.
-            Use '^' or '\A' to denote start, and '$' or '\z' for the end.
+Options:
+  -h, --help
+          Print help (see a summary with '-h')
 
-    -i, -I
-            Matching files will be included in the output.
-            [default behavior]
+  -V, --version
+          Print version
 
-    -e, -E
-            Matching files will be excluded from the output.
+Walk options:
+  -j <JOBS>
+          Number of threads to use.
+          
+          Setting this to zero will choose the number of threads automatically.
 
-    -j <JOBS>
-            Number of threads to use.
-            Setting this to zero will choose the number of threads automatically.
-            [default: num_cpus]
+  -d, --dir <DIRECTORY>
+          Directory to search for files
+          
+          [default: .]
 
-        --dir <PATH>
-            Files will be searched in the directory specified by the PATH.
-            Multiple occurences are allowed.
-            [default: '.']
+      --max-depth <DEPTH>
+          Maximum depth to recurse into directories
 
-        --max-depth <DEPTH>
-            Maximum depth to recurse.
-            [default: None]
+      --follow-links
+          Allow to follow symbolic links
 
-        --follow-links
-            Allow to follow symbolic links.
+  -., --hidden
+          Search hidden files and directories.
+          
+          By default, hidden files and directories are skipped.
 
-        --show-hidden
-            Allow to show hidden files.
+      --no-gitignore
+          Ignore .gitignore files
 
-        --no-gitignore
-            Ignore .gitignore files.
+      --no-ignore
+          Ignore .ignore files
 
-        --no-ignore
-            Ignore .ignore files.
+Match options:
+  -g
+          Parse pattern as a glob expression (default) [global alias: G]
 
-        --no-strip-prefix
-            Do not strip './' prefix, same as what GNU find does.
+  -r
+          Parse pattern as a regular expression.
+          
+          Note that expressions are unanchored by default. Use '^' or '\\A' to denote start, and '$' or
+          '\\z' for the end.
 
-    -h, --help
-            Print help information.
+  -i
+          Matching files will be included in the output (default) [global alias: I]
 
-    -V, --version
-            Print version information.
+  -e
+          Matching files will be excluded from the output [global alias: E]
 
-NOTES:
+      --no-strip-prefix
+          Do not strip './' prefix, same as what GNU find does
+
+Notes:
     -   Capitalized options (.e.g., '-G') apply to all subsequent patterns.
         E.g.: 'ff -g "*.rs" -g "*.md"' is equivalent to 'ff -G "*.rs" "*.md"'.
         You can always unset a flag by overriding it.
