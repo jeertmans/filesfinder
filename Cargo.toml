@@ -6,7 +6,7 @@ path = "src/bin.rs"
 bstr = "1.9.1"
 clap = { version = "4.5.2", features = ["cargo", "derive", "wrap_help"] }
 clap_complete = "4.5.0"
-color-print = "0.3.5"
+color-print = "0.3.6"
 crossbeam-channel = "0.5.12"
 globset = "0.4.14"
 ignore = "0.4.22"
