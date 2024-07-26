@@ -3,7 +3,7 @@ name = "ff"
 path = "src/bin.rs"
 
 [dependencies]
-bstr = "1.9.1"
+bstr = "1.10.0"
 clap = { version = "4.5.4", features = ["cargo", "derive", "wrap_help"] }
 clap_complete = "4.5.2"
 color-print = "0.3.6"
